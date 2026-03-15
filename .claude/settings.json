@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(pnpm *)",
+      "Bash(git *)",
+      "Bash(vercel *)",
+      "Bash(node *)",
+      "Bash(tsx *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(pwd)",
+      "Bash(cd *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)"
+    ]
+  }
+}

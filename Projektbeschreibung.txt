@@ -1,0 +1,35 @@
+Jetzt habe ich alles. Hier ist die vollständige Projektbeschreibung mit allen konkreten Werten:
+
+Haushaltsplaner — Projektbeschreibung
+Untertitel: "Finanzielle Tragfähigkeit für Hauskauf"
+Der Haushaltsplaner ist eine Web-App für den Haushalt der Familie (Christian, Dajana, Tochter Aya Joy). Die App besteht aus zwei Modulen: einem Budget Planner und einem KI-gestützten Beleg-Management.
+
+Modul 1: Budget Planner
+Die App verwaltet das Haushaltsbudget in fünf Kategorien, jeweils mit frei editierbaren Posten. Jeder Posten hat einen Namen, Betrag und eine Frequenz (monatlich, quartalsweise, jährlich). Nicht-monatliche Beträge werden automatisch auf den Monatswert umgerechnet und mit dem Original in Klammern angezeigt (z.B. "KFZ-Versicherung & Steuern (1.800 € → 150 €/M)"). Pro Kategorie wird ein Gesamt-Monatswert berechnet.
+Kategorie 1 — Einnahmen:
+Gehalt Christian (5.200 €/M), Gehalt Dajana (850 €/M), Kindergeld (255 €/M). Gesamt: 6.305 €/M.
+Kategorie 2 — Fixkosten:
+PKV Signal Iduna Aya/Christian (950 €/M), Berufsunfähigkeitsversicherung Christian (85 €/M), KFZ-Versicherung & Steuern (1.800 €/J = 150 €/M), Private Haftpflicht (100 €/J = 8 €/M), Hausratversicherung (120 €/J = 10 €/M), Rechtsschutz (240 €/J = 20 €/M), Sprit & Wartung/Reparaturen (350 €/M). Gesamt: 2.328 €/M.
+Kategorie 3 — Variable Kosten:
+Lebensmittel & Drogerie (800 €/M), Bekleidung (100 €/M), Geschenke & Feiern (100 €/M), Freizeit & Ausgehen (150 €/M), Urlaub/Rücklage (0 €/M). Gesamt: 1.150 €/M.
+Kategorie 4 — Sparquote:
+Sparplan Aya Joy (100 €/M), Sparplan Dajana (200 €/M), Sparplan Christian (200 €/M). Gesamt: 500 €/M.
+Kategorie 5 — Hauskosten (Laufende Kosten & Rücklagen):
+Darlehensrate (1.500 €/M), Grundsteuer (49 €/M), Gebäudeversicherung (88 €/M), Müll & Abwasser (55 €/M), Energie/Strom+Heizung (500 €/M), Instandhaltungsrücklage (500 €/M). Die Nebenkosten (alles ohne Darlehensrate) werden als Zwischensumme "Nebenkosten Gesamt" ausgewiesen (1.192 €), danach "Hauskosten Gesamt" als Kredit + Nebenkosten (2.692 €).
+Berechnungslogik:
+Die Formel ist: Monatliche Reserve = Einnahmen − (Fixkosten + Variable + Sparquote) − Hauskosten. Im Normalzustand ergibt das: 6.305 − 3.978 − 2.692 = −365 € (Status: "Kritisch", rot markiert).
+Status-Bewertung: Reserve > 500 € = "Sehr gut" (grün), > 300 € = "Ausreichend" (gelb), > 0 € = "Knapp" (orange), ≤ 0 € = "Kritisch" (rot).
+Permanente Statusleiste (Sticky Bottom Bar):
+Am unteren Bildschirmrand zeigt eine fixierte Leiste immer vier Kennzahlen: Einnahmen, Ausgaben, Hauskosten, Reserve (mit farbiger Markierung). Ein aufklappbarer Bereich darunter zeigt die gespeicherten Szenarien.
+Ausgaben-Breakdown:
+Ein Donut-Chart zeigt die prozentuale Verteilung aller Ausgaben in vier Segmenten: Fixkosten (35%, blau), Variable (17%, grün), Sparen (7%, orange), Hauskosten (40%, lila). Daneben eine Legende mit Absolutwerten und Prozenten.
+Szenario-Management:
+Man kann den aktuellen Zustand unter einem frei wählbaren Namen speichern. Gespeicherte Szenarien erscheinen in der Sticky Bar mit Name, Gesamteinnahmen und Reserve-Wert (farbig). Jedes Szenario kann geladen (ersetzt alle aktuellen Werte) oder gelöscht werden. Es existieren zwei vorkonfigurierte Referenz-Szenarien:
+Szenario "Normalzustand": Die oben beschriebenen Standardwerte. 6.305 € Einnahmen → −365 € Reserve.
+Szenario "Phase: Hausrenovierung2": Modelliert den Worst Case während der Renovierungsphase: Gehalt Christian steigt auf 5.600 €/M, Gehalt Dajana fällt auf 0 €/M, dafür kommt Mieteinnahme 480 €/M hinzu. PKV steigt auf 1.600 €/M (weil Dajana mitversichert werden muss). Variable Kosten steigen (Lebensmittel auf 1.000 €/M, plus "diverse Einkäufe Haus" 1.000 €/M). Alle Sparpläne auf 0 €/M pausiert. Darlehensrate steigt auf 1.600 €/M, Energie sinkt auf 400 €/M, Instandhaltung sinkt auf 250 €/M. Ergebnis: 6.335 € Einnahmen, 5.328 € Ausgaben, 2.442 € Hauskosten → −1.435 € Reserve (kritisch).
+Jeder Budgetposten in jeder Kategorie kann inline bearbeitet (Name, Betrag, Frequenz), gelöscht oder neu hinzugefügt werden. Alle Daten werden im LocalStorage des Browsers persistiert.
+
+Modul 2: Beleg-Management
+Upload: Belege (Fotos von Quittungen/Rechnungen) können per Drag & Drop oder Dateiauswahl hochgeladen werden. Unterstützte Formate: JPG, PNG, WEBP, maximal 10 MB.
+KI-Extraktion: Das hochgeladene Bild wird an die Claude API gesendet. Die KI extrahiert automatisch: Händlername, Datum, Gesamtbetrag, Einzelposten (Name + Preis je Artikel), Budgetkategorie (Fixkosten/Variable/Sparquote/Sonstiges), und eine Konfidenz-Bewertung (0–100%).
+Vorschau & Bestätigung: Nach der Extraktion wird eine Vorschau angezeigt mit dem Originalbild links und den extrahierten Daten rechts (Händler, Datum, Betrag, Kategorie als farbiges Badge, Einzelposten-Liste). Der Nutzer kann die Daten prüfen und dann speichern oder verwerfen.
