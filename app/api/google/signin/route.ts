@@ -1,0 +1,22 @@
+/**
+ * Google Sign-In Redirect
+ *
+ * GET /api/google/signin
+ * Generates OAuth URL and redirects user to Google consent screen
+ */
+
+import { NextResponse } from "next/server";
+import { getAuthUrl } from "@/lib/google/auth";
+
+export async function GET() {
+  try {
+    const authUrl = getAuthUrl();
+    return NextResponse.redirect(authUrl);
+  } catch (error) {
+    console.error("Error generating auth URL:", error);
+    return NextResponse.json(
+      { error: "Failed to generate authentication URL" },
+      { status: 500 }
+    );
+  }
+}

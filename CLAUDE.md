@@ -2,19 +2,19 @@
 
 ## Project
 Budget planning app with AI-powered receipt management for family household.
-Two modules: Budget Planner (5 categories, scenario management) + Receipt Manager (Claude API extraction).
+Two modules: Budget Planner (5 categories, scenario management) + Receipt Manager (Claude API extraction, PDF support, bidirectional Google Sync).
 
 ## Tech Stack
-- Next.js 15 (App Router)
-- TypeScript
+- Next.js 16 (App Router, Turbopack)
+- TypeScript (strict mode)
 - React 19
-- Tailwind CSS
+- Tailwind CSS 4
 - shadcn/ui
-- Vercel Postgres (receipts metadata)
-- Vercel Blob (receipt images)
-- @anthropic-ai/sdk (receipt extraction)
+- LocalStorage (budgets) + Google Drive/Sheets (receipts — bidirectional sync)
+- @anthropic-ai/sdk (receipt extraction — images + PDFs)
+- googleapis (OAuth 2.0, Drive, Sheets API)
+- iron-session (encrypted session cookies)
 - Recharts (donut chart)
-- SWR (server state)
 
 ## Commands
 - `npm run dev` — Dev server (localhost:3000)
@@ -25,29 +25,51 @@ Two modules: Budget Planner (5 categories, scenario management) + Receipt Manage
 
 ## Architecture
 - `app/` — Next.js App Router (pages, layouts, API routes)
-- `components/budget/` — Budget Planner UI components
-- `components/receipts/` — Receipt Manager UI components
+- `app/api/receipts/analyze` — Claude Vision/Document API for receipt extraction
+- `app/api/receipts/sync` — Bidirectional sync: POST (push), GET (pull), PATCH (update)
+- `app/api/google/` — OAuth signin, auth callback, session, cleanup, init
+- `components/budget/` — Budget Planner UI (BudgetPlanner, CategorySection, DonutChart, ScenarioManager, StickyBottomBar)
+- `components/receipts/` — Receipt Manager UI (ChatInterface, ChatInput, ChatMessage, ReceiptChatCard, ReceiptList, ReceiptManager)
+- `components/google/` — GoogleAuthButton
 - `components/ui/` — shadcn/ui base components
 - `lib/budget/` — Budget calculation logic (pure functions)
-- `lib/storage/` — LocalStorage abstraction (scenarios)
-- `lib/db/` — Database queries (receipts)
-- `lib/api/` — External API clients (Claude)
-- `types/` — TypeScript type definitions
-- `hooks/` — Custom React hooks
+- `lib/storage/` — LocalStorage abstraction (budgets + receipts)
+- `lib/google/` — Google OAuth, Drive, Sheets, Sync integration
+- `lib/receipts/` — Extraction prompt, Zod validation
+- `lib/security/` — Rate limiter
+- `types/` — TypeScript type definitions (budget, receipt, chat, google)
+- `hooks/` — Custom React hooks (useBudgetCalculator, useReceiptChat, useReceiptSync, useGoogleAuth, etc.)
+
+## Google Drive Structure
+```
+Trautes Heim/ (env: GOOGLE_DRIVE_PARENT_FOLDER_ID)
+└── Belege/
+    └── 2026/
+        ├── Check/       ← For manually uploaded files
+        ├── Done/        ← Confirmed receipts (images + PDFs)
+        └── 2026-Belege  ← Google Sheet (yearly, 9 columns)
+```
+
+## Receipt Categories (Tax-relevant)
+1. Hausrenovierung — Hardware, building materials
+2. Variable Kosten (Vermietung) — Rental property expenses
+3. Berufsbezogene Ausgaben — Work-related (Anlage N)
+4. Selbstständige Tätigkeit — Self-employed (Anlage S)
+5. Haushaltsführung — Groceries, household
+6. Sonstige — Everything else
 
 ## Rules
-- Budget scenarios → LocalStorage (fast, offline-capable)
-- Receipts (images + metadata) → Vercel Postgres + Blob (persistent)
-- Claude API calls MUST go through server-side API routes (/api/receipts/analyze)
-- Never expose ANTHROPIC_API_KEY in client-side code
-- All monetary calculations in cents (number), display in euros (string)
+- Budgets in LocalStorage, receipts synced bidirectionally with Google Drive/Sheets
+- Claude API calls MUST go through server-side API routes
+- Never expose ANTHROPIC_API_KEY or GOOGLE_CLIENT_SECRET in client-side code
+- Google OAuth tokens stored in encrypted HttpOnly cookies (iron-session)
+- All monetary calculations in cents (number), display in euros with Intl.NumberFormat('de-DE')
 - Frequency conversion: yearly÷12, quarterly÷4 for monthly values
 - Status colors: >500€=green, >300€=yellow, >0€=orange, ≤0€=red
 - German UI labels, English code comments
 - TypeScript strict mode, no 'any' types
-- Save progress to docs/progress.md before /clear
-- Use project agents: budget-calculator, receipt-processor, ui-builder
-- Use skills: /deploy, /seed-data, /test-api
+- PDF + image uploads supported (JPG, PNG, HEIC, PDF — max 10MB)
+- Zod validation allows negative amounts (Gutschriften, Abschläge)
 
 ## Current Phase
-MVP: Setup + Budget Planner module (Receipt Manager in phase 2)
+Phase 3: Bidirectional sync implemented, PDF support added. Nearing deployment.
