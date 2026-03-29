@@ -179,6 +179,10 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
   const handleConfirm = async () => {
     if (!currentReceipt) return
 
+    // Capture receipt BEFORE confirmReceipt() clears state via setCurrentReceipt(null).
+    // Without this, currentReceipt is null after await and sync silently skips.
+    const receiptToSync = { ...currentReceipt }
+
     const success = await confirmReceipt()
 
     if (success) {
@@ -196,9 +200,9 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
       }
 
       // Auto-sync to Google Drive/Sheets if authenticated
-      if (isAuthenticated && currentReceipt.imageUrl) {
+      if (isAuthenticated && receiptToSync.imageUrl) {
         addSystemMessage('Synchronisiere mit Google Drive...')
-        const syncResult = await syncReceipt(currentReceipt, currentReceipt.imageUrl)
+        const syncResult = await syncReceipt(receiptToSync, receiptToSync.imageUrl)
 
         if (syncResult.success) {
           addSystemMessage('✓ Beleg gespeichert und mit Google Drive synchronisiert')
