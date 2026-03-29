@@ -1,5 +1,63 @@
 # Haushaltsplaner — Project Progress
 
+## 2026-03-29 — Vercel Deployment & Receipt Storage Overhaul
+
+### Completed Tasks
+- **Vercel Deployment Fixed**: Framework Preset was "Other" → changed to "Next.js" (root cause of 404)
+- **Environment Variables**: Set up all env vars for Production + Pre-Production, fixed GOOGLE_CLIENT_SECRET copy-paste error (had GOOGLE_REDIRECT_URI text appended)
+- **Google Cloud Console**: Verified redirect URIs for localhost + production + preview
+- **Google Auth Button**: Moved from list-view-only to always visible (both Chat and Übersicht views)
+- **IndexedDB Image Storage**: Moved receipt images from LocalStorage (5 MB limit) to IndexedDB (unlimited). Multi-page PDFs as Base64 were exceeding LocalStorage quota → QuotaExceededError on save.
+- **Duplicate Sync Fix**: Removed sync logic from `useReceiptChat.confirmReceipt()` — sync now only happens in `ChatInterface.handleConfirm()` (single source of truth)
+- **Stale State Fix**: `confirmReceipt()` sets `setCurrentReceipt(null)` after save. Subsequent sync code in `handleConfirm()` was reading null. Fixed by capturing receipt snapshot before the async call.
+
+### Changed Files
+| File | Change |
+|------|--------|
+| `lib/storage/imageStore.ts` | **NEW** — IndexedDB CRUD for receipt images (save/load/delete/clear/has) |
+| `hooks/useReceiptImage.ts` | **NEW** — Async image loading hook with fallback chain (memory → IndexedDB → Drive URL) |
+| `lib/storage/receipts.ts` | `saveReceipt()` now strips `imageUrl` before LocalStorage write, `deleteReceipt()` also cleans IndexedDB |
+| `types/receipt.ts` | Added `hasLocalImage` boolean flag for IndexedDB awareness |
+| `hooks/useReceiptChat.ts` | `confirmReceipt()` saves to IndexedDB+LocalStorage only, no more sync logic |
+| `components/receipts/ChatInterface.tsx` | Captures `receiptToSync` snapshot before `confirmReceipt()` clears state |
+| `components/receipts/ReceiptDetail.tsx` | Uses `useReceiptImage` hook for async image display |
+| `components/receipts/RetrySyncButton.tsx` | Loads image from IndexedDB for retry sync (not from receipt.imageUrl) |
+| `app/belege/page.tsx` | GoogleAuthButton in both views, cleanup also clears IndexedDB images |
+
+### Technical Decisions
+- **IndexedDB over LocalStorage for images**: LocalStorage has ~5 MB hard limit. A 3-page PDF as Base64 is 5-10 MB. IndexedDB supports hundreds of MB and handles binary data natively.
+- **Two-tier storage**: Metadata in LocalStorage (small, synchronous, fast) + images in IndexedDB (large, async, no size limit). Clean separation of concerns.
+- **Single sync point**: Google Drive sync only in `ChatInterface.handleConfirm()`, not in the hook. Prevents double-upload and keeps status messages co-located.
+- **Receipt snapshot before async**: `const receiptToSync = { ...currentReceipt }` before `await confirmReceipt()` to prevent stale state after `setCurrentReceipt(null)`.
+
+### Current State
+- TypeScript: ✅ Clean (0 errors)
+- Build: ✅ Compiles (Next.js 16.1.6, all 11 routes)
+- Vercel: ✅ Deployed at `haushaltsplaner-beta.vercel.app`
+- Budget Planner: ✅ Loads and works on production
+- Receipt Analysis: ✅ Claude API extraction works (images + PDFs)
+- Google Auth: ✅ Button visible, OAuth configured
+- Receipt Save (local): ✅ IndexedDB + LocalStorage (large PDFs no longer crash)
+- **Receipt Sync (Drive): 🔴 BUG — Receipts after first one don't sync to Drive/Sheets despite UI showing success. Root cause unclear — stale state fix deployed but not yet verified.**
+
+### Next Steps
+1. **Debug receipt sync bug**: Receipts 2+ don't sync to Google Drive/Sheets. Need to check Vercel runtime logs for the actual API error. Possible causes:
+   - `receiptToSync` snapshot may not include `imageUrl` if state already cleared
+   - Google OAuth token refresh issue on Vercel
+   - Vercel function timeout for large payloads
+   - Check if `syncReceipt()` in `useReceiptSync` receives valid data
+2. **Verify GOOGLE_CLIENT_SECRET**: Was fixed but need to confirm the corrected value is deployed
+3. **Add GOOGLE_REDIRECT_URI env var**: Was added to "All Environments" but verify value is correct for production
+4. **Test dual-environment setup**: `master` = Production, `develop` = Preview
+5. **Clean up dev-only routes** before going live (`/api/google/cleanup`, `/api/google/init`)
+
+### Open Questions
+- Is the `GOOGLE_CLIENT_SECRET` in Vercel Production now correct? (Was corrupted, user was asked to fix)
+- Does the `GOOGLE_REDIRECT_URI` env var match the Google Cloud Console redirect URI exactly?
+- Should receipt saving work fully offline (LocalStorage only) when Google is not connected?
+
+---
+
 ## 2026-03-24 — Bidirectional Sync, PDF Support, UX Overhaul
 
 ### Completed Tasks

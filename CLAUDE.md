@@ -33,12 +33,12 @@ Two modules: Budget Planner (5 categories, scenario management) + Receipt Manage
 - `components/google/` — GoogleAuthButton
 - `components/ui/` — shadcn/ui base components
 - `lib/budget/` — Budget calculation logic (pure functions)
-- `lib/storage/` — LocalStorage abstraction (budgets + receipts)
+- `lib/storage/` — LocalStorage (budgets + receipt metadata) + IndexedDB (receipt images via imageStore.ts)
 - `lib/google/` — Google OAuth, Drive, Sheets, Sync integration
 - `lib/receipts/` — Extraction prompt, Zod validation
 - `lib/security/` — Rate limiter
 - `types/` — TypeScript type definitions (budget, receipt, chat, google)
-- `hooks/` — Custom React hooks (useBudgetCalculator, useReceiptChat, useReceiptSync, useGoogleAuth, etc.)
+- `hooks/` — Custom React hooks (useBudgetCalculator, useReceiptChat, useReceiptSync, useReceiptImage, useGoogleAuth, etc.)
 
 ## Google Drive Structure
 ```
@@ -72,4 +72,4 @@ Trautes Heim/ (env: GOOGLE_DRIVE_PARENT_FOLDER_ID)
 - Zod validation allows negative amounts (Gutschriften, Abschläge)
 
 ## Current Phase
-Phase 3: Bidirectional sync implemented, PDF support added. Nearing deployment.
+Phase 3: Deployed to Vercel (`haushaltsplaner-beta.vercel.app`). IndexedDB image storage implemented. Receipt sync bug open: receipts 2+ don't sync to Google Drive despite UI success message. Stale state fix deployed but not yet verified.
