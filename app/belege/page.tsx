@@ -134,9 +134,9 @@ export default function BelegePage() {
                     <AlertTriangle className="h-4 w-4 mr-1.5" />
                     {cleaning ? 'Räume auf...' : 'Drive leeren'}
                   </Button>
-                  <GoogleAuthButton />
                 </>
               )}
+              <GoogleAuthButton />
             </div>
           </div>
         </div>
