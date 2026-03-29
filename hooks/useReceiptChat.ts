@@ -152,8 +152,10 @@ export function useReceiptChat() {
     [currentReceipt]
   )
 
-  // Confirm and save receipt
-  const confirmReceipt = useCallback(async (onSyncComplete?: (receipt: Receipt) => void): Promise<boolean> => {
+  // Confirm and save receipt locally (IndexedDB + LocalStorage)
+  // Google Drive sync is handled separately by the ChatInterface component
+  // to avoid double-sync and to control status messages in the UI.
+  const confirmReceipt = useCallback(async (): Promise<boolean> => {
     if (!currentReceipt) return false
 
     setLoading(true)
@@ -169,51 +171,6 @@ export function useReceiptChat() {
       // Step 2: Save metadata to LocalStorage (imageUrl is auto-stripped by saveReceipt)
       const { saveReceipt } = await import('@/lib/storage/receipts')
       saveReceipt({ ...currentReceipt, hasLocalImage: !!currentReceipt.imageUrl })
-
-      // Step 3: Try to sync to Google Drive/Sheets (if authenticated)
-      // This is optional and non-blocking — failures don't prevent saving
-      try {
-        const checkAuthResponse = await fetch('/api/google/session')
-        const authData = await checkAuthResponse.json()
-
-        if (authData.authenticated && currentReceipt.imageUrl) {
-          const syncResponse = await fetch('/api/receipts/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              receipt: currentReceipt,
-              imageBase64: currentReceipt.imageUrl,
-            }),
-          })
-
-          if (syncResponse.ok) {
-            const syncResult = await syncResponse.json()
-
-            // Update receipt with sync metadata
-            const syncedReceipt: Receipt = {
-              ...currentReceipt,
-              driveFileId: syncResult.driveFileId,
-              driveFileUrl: syncResult.driveFileUrl,
-              sheetRowNumber: syncResult.sheetRowNumber,
-              sheetId: syncResult.sheetId,
-              syncedAt: syncResult.syncedAt,
-              hasLocalImage: true,
-            }
-
-            // Update LocalStorage with sync metadata (image still stripped)
-            saveReceipt(syncedReceipt)
-
-            if (onSyncComplete) {
-              onSyncComplete(syncedReceipt)
-            }
-
-            console.log('Receipt synced to Google Drive/Sheets:', syncResult)
-          }
-        }
-      } catch (syncError) {
-        // Sync failed but that's OK — receipt is saved locally (metadata + image)
-        console.warn('Google Drive sync failed (receipt saved locally):', syncError)
-      }
 
       // Clear current receipt after successful save
       setCurrentReceipt(null)
