@@ -18,6 +18,7 @@ import { PaymentMethodBadge } from './PaymentMethodBadge'
 import { SyncStatusBadge } from './SyncStatusBadge'
 import { RetrySyncButton } from './RetrySyncButton'
 import { formatEuro } from '@/lib/budget/frequency-converter'
+import { useReceiptImage } from '@/hooks/useReceiptImage'
 import { format } from 'date-fns'
 import { Loader2, CheckCircle } from 'lucide-react'
 
@@ -48,6 +49,11 @@ const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
 ]
 
 export function ReceiptDetail({ receipt, open, onClose, onSave, onSyncComplete }: ReceiptDetailProps) {
+  const { imageUrl: resolvedImageUrl } = useReceiptImage(
+    receipt?.id,
+    receipt?.imageUrl,
+    receipt?.driveFileUrl
+  )
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -143,10 +149,10 @@ export function ReceiptDetail({ receipt, open, onClose, onSave, onSyncComplete }
           </div>
 
           {/* Image Preview */}
-          {receipt.imageUrl && (
+          {resolvedImageUrl && (
             <div className="rounded-lg overflow-hidden border border-slate-200">
               <img
-                src={receipt.imageUrl}
+                src={resolvedImageUrl}
                 alt={`Beleg von ${receipt.merchantName}`}
                 className="w-full h-auto max-h-96 object-contain bg-slate-50"
               />

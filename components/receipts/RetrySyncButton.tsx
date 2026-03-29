@@ -35,8 +35,19 @@ export function RetrySyncButton({ receipt, onSyncComplete, className = '' }: Ret
   }
 
   const handleSync = async () => {
-    if (!receipt.imageUrl) {
-      setError('Kein Bild vorhanden')
+    // Load image from IndexedDB (no longer stored in receipt.imageUrl after save)
+    let imageData = receipt.imageUrl
+    if (!imageData) {
+      try {
+        const { loadImage } = await import('@/lib/storage/imageStore')
+        imageData = await loadImage(receipt.id) ?? undefined
+      } catch {
+        // IndexedDB read failed
+      }
+    }
+
+    if (!imageData) {
+      setError('Kein Bild vorhanden — Beleg kann nicht synchronisiert werden')
       return
     }
 
@@ -44,7 +55,7 @@ export function RetrySyncButton({ receipt, onSyncComplete, className = '' }: Ret
     setError(null)
 
     try {
-      const result = await syncReceipt(receipt, receipt.imageUrl)
+      const result = await syncReceipt(receipt, imageData)
 
       if (result.success) {
         // Update receipt with sync metadata

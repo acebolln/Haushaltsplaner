@@ -49,12 +49,19 @@ export default function BelegePage() {
     }
   }
 
-  const handleClearLocalStorage = () => {
+  const handleClearLocalStorage = async () => {
     if (!confirm('Alle lokalen Belege und Chat-Nachrichten löschen?')) return
     localStorage.removeItem('haushaltsplaner_receipts')
     localStorage.removeItem('receipt-chat-messages')
+    // Also clear receipt images from IndexedDB
+    try {
+      const { clearAllImages } = await import('@/lib/storage/imageStore')
+      await clearAllImages()
+    } catch {
+      // IndexedDB cleanup is best-effort
+    }
     setChatKey((k) => k + 1)
-    setCleanupResult('LocalStorage geleert')
+    setCleanupResult('LocalStorage und Bilder geleert')
   }
 
   return (

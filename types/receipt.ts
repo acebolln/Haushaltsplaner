@@ -33,7 +33,8 @@ export interface Receipt {
   paymentMethod: PaymentMethod
   category: ReceiptCategory
   lineItems: ReceiptLineItem[]
-  imageUrl?: string // Base64 data URL for MVP (LocalStorage)
+  imageUrl?: string // Base64 data URL (in-memory only, NOT persisted to LocalStorage)
+  hasLocalImage?: boolean // true if image is stored in IndexedDB
   notes?: string
   confidence: ConfidenceLevel
   createdAt: string // ISO 8601 timestamp

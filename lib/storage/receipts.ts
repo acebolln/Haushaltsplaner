@@ -37,17 +37,32 @@ export function loadAllReceipts(): Receipt[] {
 }
 
 /**
- * Saves a single receipt to localStorage
+ * Strip imageUrl from receipt before LocalStorage persistence.
+ * Images are stored separately in IndexedDB (see lib/storage/imageStore.ts)
+ * to avoid hitting the ~5 MB LocalStorage quota with large Base64 PDFs.
+ */
+function stripImageForStorage(receipt: Receipt): Receipt {
+  const { imageUrl, ...rest } = receipt
+  return {
+    ...rest,
+    // Preserve the flag so we know an image exists in IndexedDB
+    hasLocalImage: rest.hasLocalImage || !!imageUrl,
+  }
+}
+
+/**
+ * Saves a single receipt to localStorage (without image data)
  */
 export function saveReceipt(receipt: Receipt): void {
   try {
     const receipts = loadReceipts()
+    const storageReceipt = stripImageForStorage(receipt)
     const existingIndex = receipts.findIndex((r) => r.id === receipt.id)
 
     if (existingIndex >= 0) {
-      receipts[existingIndex] = receipt
+      receipts[existingIndex] = storageReceipt
     } else {
-      receipts.push(receipt)
+      receipts.push(storageReceipt)
     }
 
     saveReceipts(receipts)
@@ -90,13 +105,18 @@ export function updateReceipt(receipt: Receipt): void {
 }
 
 /**
- * Deletes a receipt by ID
+ * Deletes a receipt by ID (from LocalStorage + IndexedDB image)
  */
 export function deleteReceipt(id: string): void {
   try {
     const receipts = loadReceipts()
     const filtered = receipts.filter((r) => r.id !== id)
     saveReceipts(filtered)
+
+    // Also remove image from IndexedDB (async, best-effort)
+    import('@/lib/storage/imageStore')
+      .then(({ deleteImage }) => deleteImage(id))
+      .catch(() => { /* IndexedDB cleanup is best-effort */ })
   } catch (error) {
     console.error('Failed to delete receipt:', error)
     throw new Error('Beleg konnte nicht gelöscht werden')
