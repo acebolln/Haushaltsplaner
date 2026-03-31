@@ -170,9 +170,31 @@ export function ReceiptManager() {
     }
   }
 
-  const handleReceiptDelete = (id: string) => {
+  const handleReceiptDelete = async (id: string) => {
     try {
+      // Find receipt before deleting to get sync metadata
+      const receipt = receipts.find((r) => r.id === id)
+
+      // Delete locally
       removeReceipt(id)
+
+      // Delete from Google Sheet + Drive if synced
+      if (receipt?.sheetId && receipt?.sheetRowNumber && isAuthenticated) {
+        try {
+          await fetch('/api/receipts/sync', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              spreadsheetId: receipt.sheetId,
+              rowNumber: receipt.sheetRowNumber,
+              driveFileId: receipt.driveFileId,
+            }),
+          })
+        } catch {
+          // Non-critical: local delete succeeded, sheet delete failed
+          console.error('Failed to delete from Google Sheet')
+        }
+      }
     } catch (error) {
       console.error('Failed to delete receipt:', error)
     }

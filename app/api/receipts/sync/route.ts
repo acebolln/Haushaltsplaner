@@ -15,12 +15,14 @@ import {
   uploadReceiptImage,
   generateReceiptFilename,
   initializeFolderStructure,
+  deleteReceiptImage,
 } from "@/lib/google/drive";
 import {
   appendReceiptToSheet,
   getYearFolderIdFromDate,
   readAllReceipts,
   updateReceiptRow,
+  deleteReceiptRow,
 } from "@/lib/google/sheets";
 import { checkRateLimit, getClientIdentifier } from "@/lib/security/rate-limiter";
 
@@ -283,6 +285,62 @@ export async function PATCH(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { success: false, error: `Failed to update receipt: ${errorMessage}` },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/receipts/sync
+ * Delete a receipt row from Google Sheet (and optionally the Drive file)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getIronSession<GoogleSession>(
+      await cookies(),
+      sessionOptions
+    );
+
+    if (!session.accessToken) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { spreadsheetId, rowNumber, driveFileId } = body as {
+      spreadsheetId: string;
+      rowNumber: number;
+      driveFileId?: string;
+    };
+
+    if (!spreadsheetId || !rowNumber) {
+      return NextResponse.json(
+        { success: false, error: "Missing spreadsheetId or rowNumber" },
+        { status: 400 }
+      );
+    }
+
+    // Delete Sheet row
+    await deleteReceiptRow(session, spreadsheetId, rowNumber);
+
+    // Delete Drive file if exists
+    if (driveFileId && !driveFileId.startsWith("metadata_")) {
+      try {
+        await deleteReceiptImage(session, driveFileId);
+      } catch {
+        // Non-critical: Drive file may already be deleted
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Receipt delete error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { success: false, error: `Failed to delete from Sheet: ${errorMessage}` },
       { status: 500 }
     );
   }

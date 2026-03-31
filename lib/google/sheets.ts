@@ -532,6 +532,54 @@ export async function updateReceiptRow(
 }
 
 /**
+ * Delete a receipt row from the sheet
+ *
+ * Clears the row content (doesn't remove the row to preserve row numbers).
+ * Alternatively deletes the row if it's the last data row.
+ *
+ * @param session - User's Google session
+ * @param spreadsheetId - Google Sheets spreadsheet ID
+ * @param rowNumber - 1-indexed row number to delete
+ */
+export async function deleteReceiptRow(
+  session: GoogleSession,
+  spreadsheetId: string,
+  rowNumber: number
+): Promise<void> {
+  const sheets = getSheetsClient(session);
+
+  // Get the sheet ID for the "Belege" tab
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties",
+  });
+
+  const belegeSheet = spreadsheet.data.sheets?.find(
+    (s) => s.properties?.title === "Belege"
+  );
+  const sheetId = belegeSheet?.properties?.sheetId ?? 0;
+
+  // Delete the entire row (shifts remaining rows up)
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex: rowNumber - 1, // 0-indexed
+              endIndex: rowNumber, // exclusive
+            },
+          },
+        },
+      ],
+    },
+  });
+}
+
+/**
  * Get year folder ID from receipt date
  * Used for placing sheets in the same folder as receipts
  *
