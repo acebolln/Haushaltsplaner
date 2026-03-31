@@ -1,5 +1,5 @@
-import { BudgetPlanner } from '@/components/budget/BudgetPlanner'
+import { redirect } from 'next/navigation'
 
 export default function Home() {
-  return <BudgetPlanner />
+  redirect('/belege')
 }

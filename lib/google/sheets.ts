@@ -167,11 +167,14 @@ async function createYearlySheet(
     "Konfidenz",
     "Beleg-Link",
     "Notizen",
+    "Hochgeladen",
+    "Letzte Änderung",
+    "Änderungshistorie",
   ];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: "Belege!A1:I1",
+    range: "Belege!A1:L1",
     valueInputOption: "RAW",
     requestBody: {
       values: [headers],
@@ -283,6 +286,7 @@ function formatReceiptRow(receipt: Receipt, driveLink: string): string[] {
   const paymentMethod = PAYMENT_METHOD_LABELS[receipt.paymentMethod] || receipt.paymentMethod;
   const lineItems = formatLineItems(receipt);
   const confidence = CONFIDENCE_LABELS[receipt.confidence] || receipt.confidence;
+  const now = new Date().toISOString().split("T")[0];
 
   return [
     receipt.date,
@@ -294,6 +298,9 @@ function formatReceiptRow(receipt: Receipt, driveLink: string): string[] {
     confidence,
     driveLink,
     receipt.notes || "",
+    receipt.uploadedAt || now,
+    now,
+    "",
   ];
 }
 
@@ -336,7 +343,7 @@ export async function appendReceiptToSheet(
   // Append row
   const response = await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "Belege!A:I",
+    range: "Belege!A:L",
     valueInputOption: "RAW",
     requestBody: {
       values: [row],
@@ -345,7 +352,7 @@ export async function appendReceiptToSheet(
 
   // Extract row number from response
   const updatedRange = response.data.updates?.updatedRange || "";
-  const match = updatedRange.match(/!A(\d+):I\d+/);
+  const match = updatedRange.match(/!A(\d+):L\d+/);
   const rowNumber = match ? parseInt(match[1]) : 0;
 
   return { rowNumber, spreadsheetId };
@@ -394,7 +401,7 @@ export async function readAllReceipts(
   // Read all data (including header to determine range)
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Belege!A:I",
+    range: "Belege!A:L",
   });
 
   const allRows = response.data.values;
@@ -421,6 +428,9 @@ export async function readAllReceipts(
     const confidenceLabel = (cells[6] as string) || "";
     const driveLink = (cells[7] as string) || "";
     const notes = (cells[8] as string) || "";
+    const uploadedAt = (cells[9] as string) || "";
+    const lastModified = (cells[10] as string) || "";
+    const changeHistory = (cells[11] as string) || "";
 
     const totalAmount = parseGermanAmount(amountStr);
     const category = CATEGORY_REVERSE[categoryLabel] || "sonstige";
@@ -438,6 +448,9 @@ export async function readAllReceipts(
       confidence,
       driveLink,
       notes,
+      uploadedAt,
+      lastModified,
+      changeHistory,
     });
   }
 
@@ -465,11 +478,52 @@ export async function updateReceiptRow(
 ): Promise<void> {
   const sheets = getSheetsClient(session);
 
+  // Read existing row to get uploadedAt and build change history
+  const existingResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `Belege!A${rowNumber}:L${rowNumber}`,
+  });
+
+  const existingCells = existingResponse.data.values?.[0] || [];
+  const originalUploadedAt = (existingCells[9] as string) || "";
+  const existingHistory = (existingCells[11] as string) || "";
+
+  // Detect what changed
+  const changes: string[] = [];
+  const oldMerchant = (existingCells[1] as string) || "";
+  const oldAmount = (existingCells[2] as string) || "";
+  const oldCategory = (existingCells[3] as string) || "";
+  const oldPayment = (existingCells[4] as string) || "";
+  const oldNotes = (existingCells[8] as string) || "";
+
+  const newAmount = (receipt.totalAmount / 100).toFixed(2).replace(".", ",");
+  const newCategory = CATEGORY_LABELS[receipt.category] || receipt.category;
+  const newPayment = PAYMENT_METHOD_LABELS[receipt.paymentMethod] || receipt.paymentMethod;
+
+  if (oldMerchant !== receipt.merchantName) changes.push(`Händler: ${oldMerchant} → ${receipt.merchantName}`);
+  if (oldAmount !== newAmount) changes.push(`Betrag: ${oldAmount} → ${newAmount}`);
+  if (oldCategory !== newCategory) changes.push(`Kategorie: ${oldCategory} → ${newCategory}`);
+  if (oldPayment !== newPayment) changes.push(`Zahlung: ${oldPayment} → ${newPayment}`);
+  if (oldNotes !== (receipt.notes || "")) changes.push("Notizen geändert");
+
+  const now = new Date().toISOString().split("T")[0];
+  const changeEntry = changes.length > 0
+    ? `${now}: ${changes.join(", ")}`
+    : "";
+
+  const updatedHistory = changeEntry
+    ? (existingHistory ? `${changeEntry} | ${existingHistory}` : changeEntry)
+    : existingHistory;
+
   const row = formatReceiptRow(receipt, driveLink);
+  // Override columns J-L with tracked values
+  row[9] = originalUploadedAt || now;
+  row[10] = now;
+  row[11] = updatedHistory;
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `Belege!A${rowNumber}:I${rowNumber}`,
+    range: `Belege!A${rowNumber}:L${rowNumber}`,
     valueInputOption: "RAW",
     requestBody: {
       values: [row],

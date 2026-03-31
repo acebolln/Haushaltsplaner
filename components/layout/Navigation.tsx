@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const navigationItems = [
-  { href: '/', label: 'Budget' },
   { href: '/belege', label: 'Belege' },
+  { href: '/budget', label: 'Budget' },
 ]
 
 export function Navigation() {

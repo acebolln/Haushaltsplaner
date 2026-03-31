@@ -28,6 +28,7 @@ export function ReceiptManager() {
     setSearchText,
   } = useReceiptFilters(receipts)
   const {
+    syncReceipt,
     pullFromSheet,
     pushUpdate,
     pulling,
@@ -35,13 +36,23 @@ export function ReceiptManager() {
     isAuthenticated,
   } = useReceiptSync()
 
-  // Pull from Sheet on mount (if authenticated)
+  // Pull from Sheet on mount + auto-sync unsynced receipts (if authenticated)
   useEffect(() => {
-    if (isAuthenticated && receipts.length >= 0 && !loading) {
-      handlePull()
+    if (isAuthenticated && !loading) {
+      handlePull().then(() => syncUnsyncedReceipts())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, loading])
+
+  // Periodic pull every 5 minutes
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const interval = setInterval(() => {
+      handlePull()
+    }, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   // Pull from Google Sheet
   const handlePull = async () => {
@@ -59,6 +70,60 @@ export function ReceiptManager() {
     }
   }
 
+  // Auto-sync local-only receipts to Google Drive/Sheets
+  const syncUnsyncedReceipts = async () => {
+    // Read fresh from LocalStorage to avoid stale closure
+    const { loadReceipts } = await import('@/lib/storage/receipts')
+    const freshReceipts = loadReceipts()
+    const unsynced = freshReceipts.filter((r) => !r.driveFileId && !r.syncedAt)
+    if (unsynced.length === 0) return
+
+    for (const receipt of unsynced) {
+      // Load image from IndexedDB
+      let imageData = receipt.imageUrl
+      if (!imageData) {
+        try {
+          const { loadImage } = await import('@/lib/storage/imageStore')
+          imageData = await loadImage(receipt.id) ?? undefined
+        } catch {
+          // IndexedDB read failed
+        }
+      }
+
+      let result
+      if (imageData) {
+        // Full sync with image
+        result = await syncReceipt(receipt, imageData)
+      } else {
+        // Metadata-only sync (image lost)
+        try {
+          const response = await fetch('/api/receipts/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receipt, metadataOnly: true }),
+          })
+          result = await response.json()
+        } catch {
+          continue
+        }
+      }
+      if (result.success) {
+        const synced = {
+          ...receipt,
+          driveFileId: result.driveFileId,
+          driveFileUrl: result.driveFileUrl,
+          sheetRowNumber: result.sheetRowNumber,
+          sheetId: result.sheetId,
+          syncedAt: result.syncedAt,
+        }
+        // Update both LocalStorage and React state
+        const { updateReceipt: updateStoredReceipt } = await import('@/lib/storage/receipts')
+        updateStoredReceipt(synced)
+        updateReceipt(receipt.id, synced)
+      }
+    }
+  }
+
   // Handle receipt click
   const handleReceiptClick = (receipt: Receipt) => {
     setSelectedReceipt(receipt)
@@ -71,6 +136,8 @@ export function ReceiptManager() {
   }
 
   // Handle receipt save (+ push update to Sheet)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
   const handleReceiptSave = async (id: string, updates: Partial<Receipt>) => {
     try {
       const updatedReceipt = {
@@ -86,10 +153,18 @@ export function ReceiptManager() {
 
       // Push to Sheet if synced
       if (updatedReceipt.sheetId && updatedReceipt.sheetRowNumber) {
-        await pushUpdate(updatedReceipt)
+        const result = await pushUpdate(updatedReceipt)
+        if (!result.success) {
+          setSyncError(`Sync-Fehler: ${result.error || 'Unbekannt'}. Änderung nur lokal gespeichert.`)
+          setTimeout(() => setSyncError(null), 8000)
+        } else {
+          setSyncError(null)
+        }
       }
     } catch (error) {
       console.error('Failed to update receipt:', error)
+      setSyncError('Fehler beim Speichern. Bitte erneut versuchen.')
+      setTimeout(() => setSyncError(null), 8000)
     }
   }
 
@@ -156,6 +231,14 @@ export function ReceiptManager() {
           </Button>
         )}
       </div>
+
+      {/* Sync Error Banner */}
+      {syncError && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg">
+          <CloudOff className="w-4 h-4 flex-shrink-0" />
+          <span>{syncError}</span>
+        </div>
+      )}
 
       {/* Receipt List */}
       <div>

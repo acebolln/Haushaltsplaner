@@ -10,7 +10,7 @@ Two modules: Budget Planner (5 categories, scenario management) + Receipt Manage
 - React 19
 - Tailwind CSS 4
 - shadcn/ui
-- LocalStorage (budgets) + Google Drive/Sheets (receipts — bidirectional sync)
+- LocalStorage (budgets + receipts, fast layer) + Google Drive/Sheets (receipts + budgets — bidirectional sync)
 - @anthropic-ai/sdk (receipt extraction — images + PDFs)
 - googleapis (OAuth 2.0, Drive, Sheets API)
 - iron-session (encrypted session cookies)
@@ -26,7 +26,8 @@ Two modules: Budget Planner (5 categories, scenario management) + Receipt Manage
 ## Architecture
 - `app/` — Next.js App Router (pages, layouts, API routes)
 - `app/api/receipts/analyze` — Claude Vision/Document API for receipt extraction
-- `app/api/receipts/sync` — Bidirectional sync: POST (push), GET (pull), PATCH (update)
+- `app/api/receipts/sync` — Bidirectional receipt sync: POST (push), GET (pull), PATCH (update)
+- `app/api/budget/sync` — Budget sync: POST (push budget+scenarios), GET (pull)
 - `app/api/google/` — OAuth signin, auth callback, session, cleanup, init
 - `components/budget/` — Budget Planner UI (BudgetPlanner, CategorySection, DonutChart, ScenarioManager, StickyBottomBar)
 - `components/receipts/` — Receipt Manager UI (ChatInterface, ChatInput, ChatMessage, ReceiptChatCard, ReceiptList, ReceiptManager)
@@ -34,20 +35,22 @@ Two modules: Budget Planner (5 categories, scenario management) + Receipt Manage
 - `components/ui/` — shadcn/ui base components
 - `lib/budget/` — Budget calculation logic (pure functions)
 - `lib/storage/` — LocalStorage (budgets + receipt metadata) + IndexedDB (receipt images via imageStore.ts)
-- `lib/google/` — Google OAuth, Drive, Sheets, Sync integration
+- `lib/google/` — Google OAuth, Drive, Sheets, Sync integration (receipts + budgets)
 - `lib/receipts/` — Extraction prompt, Zod validation
 - `lib/security/` — Rate limiter
 - `types/` — TypeScript type definitions (budget, receipt, chat, google)
-- `hooks/` — Custom React hooks (useBudgetCalculator, useReceiptChat, useReceiptSync, useReceiptImage, useGoogleAuth, etc.)
+- `hooks/` — Custom React hooks (useBudgetCalculator, useBudgetSync, useReceiptChat, useReceiptSync, useReceiptImage, useGoogleAuth, etc.)
 
 ## Google Drive Structure
 ```
 Trautes Heim/ (env: GOOGLE_DRIVE_PARENT_FOLDER_ID)
-└── Belege/
-    └── 2026/
-        ├── Check/       ← For manually uploaded files
-        ├── Done/        ← Confirmed receipts (images + PDFs)
-        └── 2026-Belege  ← Google Sheet (yearly, 9 columns)
+├── Belege/
+│   └── 2026/
+│       ├── Check/       ← For manually uploaded files
+│       ├── Done/        ← Confirmed receipts (images + PDFs)
+│       └── 2026-Belege  ← Google Sheet (yearly, 9 columns)
+└── Budget/
+    └── Haushaltsplan    ← Google Sheet (Tab "Aktuell" + Tab "Szenarien")
 ```
 
 ## Receipt Categories (Tax-relevant)
@@ -72,4 +75,4 @@ Trautes Heim/ (env: GOOGLE_DRIVE_PARENT_FOLDER_ID)
 - Zod validation allows negative amounts (Gutschriften, Abschläge)
 
 ## Current Phase
-Phase 3: Deployed to Vercel (`haushaltsplaner-beta.vercel.app`). IndexedDB image storage implemented. Receipt sync bug open: receipts 2+ don't sync to Google Drive despite UI success message. Stale state fix deployed but not yet verified.
+Phase 3: Deployed to Vercel (`haushaltsplaner-beta.vercel.app`). IndexedDB image storage. Budget sync to Google Sheets (debounced push, pull on empty LocalStorage). Default landing page changed to /belege, budget moved to /budget. Dead dependencies removed (MongoDB, @vercel/postgres, @vercel/blob). Receipt sync bug open: receipts 2+ don't sync to Google Drive despite UI success message.

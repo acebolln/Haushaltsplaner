@@ -46,30 +46,39 @@ export function RetrySyncButton({ receipt, onSyncComplete, className = '' }: Ret
       }
     }
 
-    if (!imageData) {
-      setError('Kein Bild vorhanden — Beleg kann nicht synchronisiert werden')
-      return
-    }
-
     setSyncing(true)
     setError(null)
 
     try {
-      const result = await syncReceipt(receipt, imageData)
+      let result
+
+      if (imageData) {
+        // Full sync: image + Sheet row
+        result = await syncReceipt(receipt, imageData)
+      } else {
+        // Metadata-only sync: no image available, just append to Sheet
+        const response = await fetch('/api/receipts/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receipt, metadataOnly: true }),
+        })
+        result = await response.json()
+      }
 
       if (result.success) {
         // Update receipt with sync metadata
         const updatedReceipt: Receipt = {
           ...receipt,
-          driveFileId: result.driveFileId,
+          driveFileId: result.driveFileId || `metadata_${Date.now()}`,
           driveFileUrl: result.driveFileUrl,
           sheetRowNumber: result.sheetRowNumber,
+          sheetId: result.sheetId,
           syncedAt: result.syncedAt,
         }
 
         // Save updated receipt to LocalStorage
-        const { saveReceipt } = await import('@/lib/storage/receipts')
-        saveReceipt(updatedReceipt)
+        const { updateReceipt } = await import('@/lib/storage/receipts')
+        updateReceipt(updatedReceipt)
 
         // Notify parent component
         if (onSyncComplete) {

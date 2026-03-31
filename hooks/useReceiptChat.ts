@@ -169,8 +169,14 @@ export function useReceiptChat() {
       }
 
       // Step 2: Save metadata to LocalStorage (imageUrl is auto-stripped by saveReceipt)
+      const now = new Date().toISOString()
       const { saveReceipt } = await import('@/lib/storage/receipts')
-      saveReceipt({ ...currentReceipt, hasLocalImage: !!currentReceipt.imageUrl })
+      saveReceipt({
+        ...currentReceipt,
+        hasLocalImage: !!currentReceipt.imageUrl,
+        lastModifiedLocally: now,
+        uploadedAt: now,
+      })
 
       // Clear current receipt after successful save
       setCurrentReceipt(null)

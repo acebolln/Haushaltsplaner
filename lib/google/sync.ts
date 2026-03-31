@@ -70,6 +70,13 @@ export function mergeReceipts(
     if (localMatch) {
       matchedRowNumbers.add(row.rowNumber)
 
+      // Check if sync metadata is missing (receipt synced before metadata persistence fix)
+      const needsMetadataUpdate =
+        !localMatch.sheetRowNumber ||
+        !localMatch.sheetId ||
+        !localMatch.syncedAt ||
+        !localMatch.driveFileUrl
+
       // Check if remote data differs from local
       const hasChanges =
         localMatch.merchantName !== row.merchantName ||
@@ -85,7 +92,17 @@ export function mergeReceipts(
         const lastSync = localMatch.syncedAt
 
         if (localModified && lastSync && localModified > lastSync) {
-          // Local is newer — don't overwrite (will be pushed on next sync)
+          // Local is newer — don't overwrite, but still fill missing metadata
+          if (needsMetadataUpdate) {
+            updated.push({
+              ...localMatch,
+              sheetRowNumber: row.rowNumber,
+              sheetId: spreadsheetId,
+              driveFileUrl: row.driveLink || localMatch.driveFileUrl,
+              driveFileId: localMatch.driveFileId || (row.driveLink ? `synced_${row.rowNumber}` : undefined),
+              syncedAt: localMatch.syncedAt || new Date().toISOString(),
+            })
+          }
           continue
         }
 
@@ -100,8 +117,20 @@ export function mergeReceipts(
           notes: row.notes || localMatch.notes,
           sheetRowNumber: row.rowNumber,
           sheetId: spreadsheetId,
+          driveFileUrl: row.driveLink || localMatch.driveFileUrl,
+          driveFileId: localMatch.driveFileId || (row.driveLink ? `synced_${row.rowNumber}` : undefined),
           syncedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        })
+      } else if (needsMetadataUpdate) {
+        // Data is identical but sync metadata missing — fill it in
+        updated.push({
+          ...localMatch,
+          sheetRowNumber: row.rowNumber,
+          sheetId: spreadsheetId,
+          driveFileUrl: row.driveLink || localMatch.driveFileUrl,
+          driveFileId: localMatch.driveFileId || (row.driveLink ? `synced_${row.rowNumber}` : undefined),
+          syncedAt: new Date().toISOString(),
         })
       }
     } else {

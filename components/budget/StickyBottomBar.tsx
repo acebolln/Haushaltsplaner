@@ -3,13 +3,17 @@
 import { BudgetCalculations } from '@/types/budget'
 import { formatEuro } from '@/lib/budget/frequency-converter'
 import { StatusIndicator } from './StatusIndicator'
-import { TrendingUp, TrendingDown, Home, Wallet } from 'lucide-react'
+import { TrendingUp, TrendingDown, Home, Wallet, Cloud, CloudOff, Loader2, Check } from 'lucide-react'
+
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
 interface StickyBottomBarProps {
   calculations: BudgetCalculations | null
+  syncStatus?: SyncStatus
+  isGoogleAuth?: boolean
 }
 
-export function StickyBottomBar({ calculations }: StickyBottomBarProps) {
+export function StickyBottomBar({ calculations, syncStatus, isGoogleAuth }: StickyBottomBarProps) {
   if (!calculations) {
     return null
   }
@@ -80,6 +84,35 @@ export function StickyBottomBar({ calculations }: StickyBottomBarProps) {
               </div>
             </div>
           </div>
+
+          {/* Sync Status Indicator */}
+          {isGoogleAuth && syncStatus && (
+            <div className="flex items-center justify-end mt-2 md:mt-0 md:absolute md:right-6 md:top-2">
+              {syncStatus === 'syncing' && (
+                <div className="flex items-center gap-1 text-xs text-blue-500">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Synchronisiere...</span>
+                </div>
+              )}
+              {syncStatus === 'success' && (
+                <div className="flex items-center gap-1 text-xs text-emerald-500">
+                  <Check className="h-3 w-3" />
+                  <span>Gespeichert</span>
+                </div>
+              )}
+              {syncStatus === 'error' && (
+                <div className="flex items-center gap-1 text-xs text-red-500">
+                  <CloudOff className="h-3 w-3" />
+                  <span>Sync-Fehler</span>
+                </div>
+              )}
+              {syncStatus === 'idle' && (
+                <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <Cloud className="h-3 w-3" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

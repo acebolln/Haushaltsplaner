@@ -46,6 +46,7 @@ export interface Receipt {
   sheetRowNumber?: number // Row number in yearly Google Sheet
   syncedAt?: string // ISO 8601 timestamp of last sync
   lastModifiedLocally?: string // ISO 8601 timestamp of last local edit
+  uploadedAt?: string // ISO date of first upload to Google Drive
 }
 
 // Claude API extraction result
@@ -70,6 +71,9 @@ export interface ReceiptSheetRow {
   confidence: ConfidenceLevel
   driveLink: string // "Beleg-Link" column
   notes: string
+  uploadedAt: string // ISO date of first upload
+  lastModified: string // ISO date of last change
+  changeHistory: string // pipe-separated change log
 }
 
 // Receipt filter options

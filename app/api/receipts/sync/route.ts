@@ -38,7 +38,8 @@ const sessionOptions = {
 
 interface SyncRequest {
   receipt: Receipt;
-  imageBase64: string;
+  imageBase64?: string;
+  metadataOnly?: boolean;
 }
 
 interface SyncResponse {
@@ -88,11 +89,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 
     // Parse request body
     const body: SyncRequest = await request.json();
-    const { receipt, imageBase64 } = body;
+    const { receipt, imageBase64, metadataOnly } = body;
 
-    if (!receipt || !imageBase64) {
+    if (!receipt) {
       return NextResponse.json(
-        { success: false, error: "Missing receipt or image data" },
+        { success: false, error: "Missing receipt data" },
+        { status: 400 }
+      );
+    }
+
+    if (!metadataOnly && !imageBase64) {
+      return NextResponse.json(
+        { success: false, error: "Missing image data" },
         { status: 400 }
       );
     }
@@ -112,30 +120,35 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     // Initialize folder structure (creates folders if needed)
     await initializeFolderStructure(session);
 
-    // Extract MIME type from base64 string
-    const mimeTypeMatch = imageBase64.match(/^data:([^;]+);base64,/);
-    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+    let fileId = "";
+    let webViewLink = "";
 
-    // Generate filename
-    const filename = generateReceiptFilename(
-      receipt.date,
-      receipt.merchantName,
-      receipt.totalAmount,
-      mimeType
-    );
+    if (imageBase64 && !metadataOnly) {
+      // Full sync: upload image to Drive
+      const mimeTypeMatch = imageBase64.match(/^data:([^;]+);base64,/);
+      const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
 
-    // Upload to Drive
-    const { fileId, webViewLink } = await uploadReceiptImage(
-      session,
-      imageBase64,
-      filename,
-      receipt.date
-    );
+      const filename = generateReceiptFilename(
+        receipt.date,
+        receipt.merchantName,
+        receipt.totalAmount,
+        mimeType
+      );
 
-    // Get year folder ID (same folder where image was uploaded)
+      const uploadResult = await uploadReceiptImage(
+        session,
+        imageBase64,
+        filename,
+        receipt.date
+      );
+      fileId = uploadResult.fileId;
+      webViewLink = uploadResult.webViewLink;
+    }
+
+    // Get year folder ID
     const yearFolderId = await getYearFolderIdFromDate(session, receipt.date);
 
-    // Append to Google Sheets (sheet will be in same year folder)
+    // Append to Google Sheets
     const { rowNumber, spreadsheetId } = await appendReceiptToSheet(
       session,
       receipt,
@@ -147,8 +160,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 
     return NextResponse.json({
       success: true,
-      driveFileId: fileId,
-      driveFileUrl: webViewLink,
+      driveFileId: fileId || `metadata_${Date.now()}`,
+      driveFileUrl: webViewLink || undefined,
       sheetRowNumber: rowNumber,
       sheetId: spreadsheetId,
       syncedAt,

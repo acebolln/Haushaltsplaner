@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   if (!rateLimit.allowed) {
     return NextResponse.redirect(
       new URL(
-        `/dashboard?error=${encodeURIComponent("Too many authentication attempts. Please try again later.")}`,
+        `/belege?error=${encodeURIComponent("Too many authentication attempts. Please try again later.")}`,
         request.url
       )
     );
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     console.error("OAuth error:", error);
     return NextResponse.redirect(
       new URL(
-        `/dashboard?error=${encodeURIComponent("Google authentication failed")}`,
+        `/belege?error=${encodeURIComponent("Google authentication failed")}`,
         request.url
       )
     );
@@ -102,13 +102,13 @@ export async function GET(request: NextRequest) {
 
     // Redirect to dashboard
     return NextResponse.redirect(
-      new URL("/dashboard?google_auth=success", request.url)
+      new URL("/belege?google_auth=success", request.url)
     );
   } catch (error) {
     console.error("Error in OAuth callback:", error);
     return NextResponse.redirect(
       new URL(
-        `/dashboard?error=${encodeURIComponent("Failed to authenticate with Google")}`,
+        `/belege?error=${encodeURIComponent("Failed to authenticate with Google")}`,
         request.url
       )
     );

@@ -205,10 +205,29 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
         const syncResult = await syncReceipt(receiptToSync, receiptToSync.imageUrl)
 
         if (syncResult.success) {
+          // Persist sync metadata back to LocalStorage
+          try {
+            const { loadReceipt, updateReceipt } = await import('@/lib/storage/receipts')
+            const savedReceipt = loadReceipt(receiptToSync.id)
+            if (savedReceipt) {
+              updateReceipt({
+                ...savedReceipt,
+                driveFileId: syncResult.driveFileId,
+                driveFileUrl: syncResult.driveFileUrl,
+                sheetRowNumber: syncResult.sheetRowNumber,
+                sheetId: syncResult.sheetId,
+                syncedAt: syncResult.syncedAt,
+              })
+            }
+          } catch {
+            // Non-critical: metadata will be recovered on next pull
+          }
           addSystemMessage('✓ Beleg gespeichert und mit Google Drive synchronisiert')
         } else {
-          addSystemMessage('✓ Beleg gespeichert — Drive-Sync kann in der Übersicht nachgeholt werden')
+          addSystemMessage(`✓ Beleg gespeichert — Drive-Sync fehlgeschlagen: ${syncResult.error || 'Unbekannt'}. Kann in der Übersicht nachgeholt werden.`)
         }
+      } else if (!isAuthenticated) {
+        addSystemMessage('✓ Beleg lokal gespeichert. Mit Google verbinden, um automatisch zu synchronisieren.')
       } else {
         addSystemMessage('✓ Beleg gespeichert')
       }

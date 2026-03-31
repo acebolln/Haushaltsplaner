@@ -13,6 +13,7 @@ import {
   loadCurrentBudget,
   saveCurrentBudget,
   loadScenarios,
+  saveScenario,
   initializeDefaultScenarios,
   deleteScenario
 } from '@/lib/storage/budgets'
@@ -26,6 +27,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Trash2 } from 'lucide-react'
+import { useBudgetSync } from '@/hooks/useBudgetSync'
 
 /**
  * Haushaltsplaner - Main Component
@@ -37,6 +39,7 @@ export function BudgetPlanner() {
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [currentScenarioId, setCurrentScenarioId] = useState<string | null>(null)
   const calculations = useBudgetCalculator(budgetData)
+  const { debouncedPush, pullBudget, syncStatus, isAuthenticated: isGoogleAuth } = useBudgetSync()
 
   // Initialize default scenarios on first load
   useEffect(() => {
@@ -44,31 +47,55 @@ export function BudgetPlanner() {
     loadScenariosData()
   }, [])
 
-  // Load budget on mount
+  // Load budget on mount — try LocalStorage first, then Google Sheets
   useEffect(() => {
     const loaded = loadCurrentBudget()
     if (loaded) {
       setBudgetData(loaded)
-      // Try to find matching scenario
       const scenarios = loadScenarios()
       const match = scenarios.find(
         (s) => JSON.stringify(s.data) === JSON.stringify(loaded)
       )
       if (match) setCurrentScenarioId(match.id)
     } else {
-      // Load first scenario as default
-      const scenarios = loadScenarios()
-      if (scenarios.length > 0) {
-        loadScenarioById(scenarios[0].id)
-      } else {
-        setBudgetData(NORMALZUSTAND)
-        saveCurrentBudget(NORMALZUSTAND)
-      }
+      // Try pulling from Google Sheets (recovery)
+      pullBudget().then((result) => {
+        if (result.success && result.budgetData) {
+          setBudgetData(result.budgetData)
+          saveCurrentBudget(result.budgetData)
+          if (result.scenarios.length > 0) {
+            for (const s of result.scenarios) {
+              saveScenario(s.name, s.data)
+            }
+            loadScenariosData()
+            setCurrentScenarioId(result.scenarios[0].id)
+          }
+          return
+        }
+
+        // Fallback: load from scenarios
+        const allScenarios = loadScenarios()
+        if (allScenarios.length > 0) {
+          setBudgetData(allScenarios[0].data)
+          saveCurrentBudget(allScenarios[0].data)
+          setCurrentScenarioId(allScenarios[0].id)
+        } else {
+          setBudgetData(NORMALZUSTAND)
+          saveCurrentBudget(NORMALZUSTAND)
+        }
+      })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadScenariosData = () => {
     setScenarios(loadScenarios())
+  }
+
+  // Save budget locally and trigger debounced cloud sync
+  const saveBudget = (data: BudgetData) => {
+    saveCurrentBudget(data)
+    debouncedPush(data, loadScenarios())
   }
 
   // Load scenario by ID
@@ -76,7 +103,7 @@ export function BudgetPlanner() {
     const scenario = scenarios.find((s) => s.id === scenarioId)
     if (scenario) {
       setBudgetData(scenario.data)
-      saveCurrentBudget(scenario.data)
+      saveBudget(scenario.data)
       setCurrentScenarioId(scenarioId)
     }
   }
@@ -87,7 +114,7 @@ export function BudgetPlanner() {
     const scenario = scenarios.find((s) => s.id === scenarioId)
     if (scenario) {
       setBudgetData(scenario.data)
-      saveCurrentBudget(scenario.data)
+      saveBudget(scenario.data)
       setCurrentScenarioId(scenarioId)
     }
   }
@@ -107,7 +134,7 @@ export function BudgetPlanner() {
       } else {
         // No scenarios left, load default
         setBudgetData(NORMALZUSTAND)
-        saveCurrentBudget(NORMALZUSTAND)
+        saveBudget(NORMALZUSTAND)
         setCurrentScenarioId(null)
       }
     }
@@ -121,7 +148,7 @@ export function BudgetPlanner() {
   // Load scenario from data (used by ScenarioManager)
   const handleLoadScenario = (data: BudgetData) => {
     setBudgetData(data)
-    saveCurrentBudget(data)
+    saveBudget(data)
     // Try to find matching scenario ID
     const match = scenarios.find(
       (s) => JSON.stringify(s.data) === JSON.stringify(data)
@@ -154,7 +181,7 @@ export function BudgetPlanner() {
     }
 
     setBudgetData(updatedData)
-    saveCurrentBudget(updatedData)
+    saveBudget(updatedData)
   }
 
   // Edit existing item
@@ -178,7 +205,7 @@ export function BudgetPlanner() {
     }
 
     setBudgetData(updatedData)
-    saveCurrentBudget(updatedData)
+    saveBudget(updatedData)
   }
 
   // Delete item
@@ -200,7 +227,7 @@ export function BudgetPlanner() {
     }
 
     setBudgetData(updatedData)
-    saveCurrentBudget(updatedData)
+    saveBudget(updatedData)
   }
 
   // Prepare chart data - Modern semantic colors
@@ -431,7 +458,7 @@ export function BudgetPlanner() {
       </section>
 
       {/* Sticky Bottom Bar */}
-      <StickyBottomBar calculations={calculations} />
+      <StickyBottomBar calculations={calculations} syncStatus={syncStatus} isGoogleAuth={isGoogleAuth} />
     </div>
   )
 }
