@@ -2,6 +2,7 @@ import { Receipt } from '@/types/receipt'
 
 const STORAGE_KEYS = {
   RECEIPTS: 'haushaltsplaner_receipts',
+  DELETED_RECEIPTS: 'haushaltsplaner_deleted_receipts',
 } as const
 
 /**
@@ -106,12 +107,19 @@ export function updateReceipt(receipt: Receipt): void {
 
 /**
  * Deletes a receipt by ID (from LocalStorage + IndexedDB image)
+ * Also records a tombstone so pull-sync won't re-add it.
  */
 export function deleteReceipt(id: string): void {
   try {
     const receipts = loadReceipts()
+    const receipt = receipts.find((r) => r.id === id)
     const filtered = receipts.filter((r) => r.id !== id)
     saveReceipts(filtered)
+
+    // Record tombstone (by ID + Sheet row fingerprint for matching)
+    if (receipt) {
+      addTombstone(receipt)
+    }
 
     // Also remove image from IndexedDB (async, best-effort)
     import('@/lib/storage/imageStore')
@@ -124,8 +132,63 @@ export function deleteReceipt(id: string): void {
 }
 
 /**
+ * Tombstone tracking — prevents pull-sync from re-adding deleted receipts
+ */
+interface Tombstone {
+  id: string
+  date: string
+  merchantName: string
+  totalAmount: number
+  sheetRowNumber?: number
+  deletedAt: string
+}
+
+function addTombstone(receipt: Receipt): void {
+  try {
+    const tombstones = loadTombstones()
+    tombstones.push({
+      id: receipt.id,
+      date: receipt.date,
+      merchantName: receipt.merchantName,
+      totalAmount: receipt.totalAmount,
+      sheetRowNumber: receipt.sheetRowNumber,
+      deletedAt: new Date().toISOString(),
+    })
+    localStorage.setItem(STORAGE_KEYS.DELETED_RECEIPTS, JSON.stringify(tombstones))
+  } catch {
+    // Best-effort
+  }
+}
+
+export function loadTombstones(): Tombstone[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.DELETED_RECEIPTS)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Check if a sheet row matches a tombstone (was previously deleted)
+ */
+export function isTombstoned(date: string, merchantName: string, totalAmount: number): boolean {
+  const tombstones = loadTombstones()
+  return tombstones.some(
+    (t) => t.date === date && t.merchantName === merchantName && t.totalAmount === totalAmount
+  )
+}
+
+/**
  * Clears all receipts from localStorage
  */
 export function clearAllReceipts(): void {
   localStorage.removeItem(STORAGE_KEYS.RECEIPTS)
+}
+
+/**
+ * Clears tombstones (use when doing a full reset)
+ */
+export function clearTombstones(): void {
+  localStorage.removeItem(STORAGE_KEYS.DELETED_RECEIPTS)
 }

@@ -11,6 +11,7 @@ import type {
   Receipt,
   ReceiptSheetRow,
 } from "@/types/receipt"
+import { isTombstoned } from "@/lib/storage/receipts"
 
 export interface MergeResult {
   /** Receipts to update in local storage (changed remotely) */
@@ -134,7 +135,12 @@ export function mergeReceipts(
         })
       }
     } else {
-      // No local match — new receipt from Sheet
+      // No local match — check if it was deleted locally (tombstone)
+      if (isTombstoned(row.date, row.merchantName, row.totalAmount)) {
+        continue // Skip: this receipt was intentionally deleted
+      }
+
+      // New receipt from Sheet
       const newReceipt: Receipt = {
         id: generateId(),
         merchantName: row.merchantName,
