@@ -75,4 +75,4 @@ Trautes Heim/ (env: GOOGLE_DRIVE_PARENT_FOLDER_ID)
 - Zod validation allows negative amounts (Gutschriften, Abschläge)
 
 ## Current Phase
-Phase 3: Deployed to Vercel (`haushaltsplaner-beta.vercel.app`). IndexedDB image storage. Budget sync to Google Sheets (debounced push, pull on empty LocalStorage). Default landing page changed to /belege, budget moved to /budget. Dead dependencies removed (MongoDB, @vercel/postgres, @vercel/blob). Receipt sync bug open: receipts 2+ don't sync to Google Drive despite UI success message.
+Phase 3: Deployed to Vercel (`haushaltsplaner-beta.vercel.app`). Budget sync to Google Sheets. Image compression for mobile uploads. Delete sync (app→Sheet+Drive). Tombstone mechanism for deleted receipts. **OPEN BUG: Pull-sync duplicates receipts (addReceipt regenerates IDs) + SyncStatusBadge shows "Nur lokal" for synced receipts (checks driveFileId instead of sheetRowNumber). Fix plan ready in `.claude/plans/bubbly-booping-shore.md`.**

@@ -1,5 +1,84 @@
 # Haushaltsplaner — Project Progress
 
+## 2026-03-31 — Budget Sync, Receipt Sync Fixes, Duplicate Bug Discovery
+
+### Completed Tasks
+- **Budget Sync to Google Sheets**: New `Trautes Heim/Budget/Haushaltsplan` Sheet with "Aktuell" (human-readable) + "Szenarien" (JSON backup) tabs. Debounced push (5s) after every budget change, pull recovery on empty LocalStorage. Sync status indicator in StickyBottomBar.
+- **Default Landing Page**: Changed from `/` (Budget) to `/belege`. Budget moved to `/budget` route.
+- **OAuth Redirect Fix**: All OAuth callbacks now redirect to `/belege` instead of nonexistent `/dashboard`.
+- **Budget Loading Bug Fix**: `loadScenarioById` used stale `scenarios` state on first render → infinite "Lade Budget..." screen.
+- **Tab Reorder**: Belege tab now first, Budget second in navigation.
+- **Dead Dependencies Removed**: `@vercel/postgres`, `@vercel/blob` from package.json; `MONGODB_URI` from .env.local (all unused).
+- **Receipt Sheet Extended**: +3 columns (Hochgeladen, Letzte Änderung, Änderungshistorie) with change tracking on edits.
+- **Image Compression**: Client-side compression (max 1.5MB/2048px JPEG) before sync to fit Vercel's 4.5MB body limit.
+- **Receipt Delete Sync**: Deleting a receipt now also removes Sheet row + Drive file.
+- **Tombstone Mechanism**: Deleted receipt fingerprints stored in LocalStorage to prevent pull-sync from re-adding them.
+- **Sync Metadata Persistence**: ChatInterface now saves driveFileId/sheetRowNumber/syncedAt back to LocalStorage after successful sync.
+- **Auto-Sync Unsynced Receipts**: On Google connect, all local-only receipts are automatically synced (batch, including metadata-only for lost images).
+- **Periodic Pull**: Every 5 minutes when Google connected.
+- **pushUpdate Error Handling**: Sync errors shown as banner in receipt overview.
+- **lastModifiedLocally on Creation**: Set during confirmReceipt for conflict detection.
+- **Non-JSON Response Handling**: Graceful error message when Vercel returns HTML instead of JSON.
+
+### Changed Files
+| File | Change |
+|------|--------|
+| `app/page.tsx` | Redirect to `/belege` instead of rendering BudgetPlanner |
+| `app/budget/page.tsx` | **NEW** — Budget route |
+| `app/api/budget/sync/route.ts` | **NEW** — POST (push) + GET (pull) budget sync |
+| `app/api/google/auth/route.ts` | OAuth redirect `/dashboard` → `/belege` |
+| `app/api/receipts/sync/route.ts` | +DELETE endpoint, +metadataOnly sync, +maxDuration 60s |
+| `lib/google/budget-sheets.ts` | **NEW** — Budget Sheet CRUD (Aktuell + Szenarien tabs) |
+| `lib/google/sheets.ts` | +3 columns, +deleteReceiptRow, +change tracking in updateReceiptRow |
+| `lib/google/sync.ts` | +tombstone check, +needsMetadataUpdate, +driveFileId for pulled receipts |
+| `lib/storage/receipts.ts` | +tombstone mechanism (addTombstone, loadTombstones, isTombstoned) |
+| `lib/utils/compress-image.ts` | **NEW** — Client-side image compression |
+| `hooks/useBudgetSync.ts` | **NEW** — Debounced push, pull recovery |
+| `hooks/useReceiptChat.ts` | +lastModifiedLocally + uploadedAt on confirmReceipt |
+| `hooks/useReceiptSync.ts` | +non-JSON response handling |
+| `components/budget/BudgetPlanner.tsx` | +useBudgetSync integration, saveBudget helper |
+| `components/budget/StickyBottomBar.tsx` | +sync status indicator (Cloud/Loader/Check/Error) |
+| `components/layout/Navigation.tsx` | Tabs reordered + Budget href → /budget |
+| `components/receipts/ChatInterface.tsx` | +sync metadata persistence, +image compression |
+| `components/receipts/ReceiptManager.tsx` | +auto-sync unsynced, +periodic pull, +delete sync, +error banner |
+| `components/receipts/RetrySyncButton.tsx` | +metadata-only sync, +image compression |
+| `types/receipt.ts` | +uploadedAt on Receipt, +uploadedAt/lastModified/changeHistory on ReceiptSheetRow |
+| `package.json` | Removed @vercel/postgres, @vercel/blob |
+| `.env.local` | Removed MONGODB_URI |
+| `CLAUDE.md` | Updated architecture docs |
+
+### Technical Decisions
+- **Google Sheets as database** (no MongoDB): Receipts + Budgets synced to Sheets. MongoDB was never used (leftover from AI Assessment project). Sheets is browsable, free, already integrated.
+- **Budget Sheet structure**: Single "Haushaltsplan" sheet with 2 tabs instead of yearly sheets. Budget data changes rarely vs receipts.
+- **Tombstones for delete tracking**: Fingerprint-based (date+merchant+amount) stored in LocalStorage. Prevents pull-sync zombie receipts.
+- **Image compression before sync**: Canvas-based JPEG compression to fit Vercel's 4.5MB serverless body limit. Mobile photos (3-8MB) were too large.
+- **Metadata-only sync**: Receipts with lost images can still sync extracted data to Sheet (empty Drive link).
+
+### Current State
+- TypeScript: ✅ Clean (0 errors)
+- Build: ✅ Compiles (Next.js 16.1.6, all routes including /api/budget/sync, /budget)
+- Vercel: ✅ Deployed at `haushaltsplaner-beta.vercel.app`
+- Budget Planner: ✅ Loads, syncs to Google Sheets
+- Receipt Analysis: ✅ Claude API extraction works (images + PDFs)
+- Receipt Upload + Sync: ✅ Works for new receipts with image compression
+- Receipt Delete Sync: ✅ Removes from Sheet + Drive
+- Google Auth: ✅ Redirect to /belege works
+- **Receipt Pull-Sync: 🔴 BUG — Duplicate receipts on pull + "Nur lokal" badges for synced receipts**
+
+### Next Steps
+**CRITICAL — Plan ready in `.claude/plans/bubbly-booping-shore.md`:**
+1. **Fix Bug #1**: `addReceipt()` regenerates IDs for pulled receipts → add `importReceipt()` that preserves IDs
+2. **Fix Bug #2**: `SyncStatusBadge` checks `driveFileId` instead of `sheetRowNumber` → fix condition
+3. **Fix Bug #3**: No content-based dedup in `saveReceipt()` → add fingerprint check + `deduplicateReceipts()` cleanup
+4. Files to change: `hooks/useReceiptManager.ts`, `components/receipts/ReceiptManager.tsx`, `components/receipts/SyncStatusBadge.tsx`, `hooks/useReceiptSync.ts`, `lib/storage/receipts.ts`
+5. After fix: deploy + verify no more duplicates
+
+### Open Questions
+- User is cleaning up duplicate rows in Google Sheet manually (Altbestände)
+- After the 3-bug fix: full E2E test needed (create, edit, delete, pull, push)
+
+---
+
 ## 2026-03-29 — Vercel Deployment & Receipt Storage Overhaul
 
 ### Completed Tasks
