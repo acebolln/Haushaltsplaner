@@ -202,7 +202,9 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
       // Auto-sync to Google Drive/Sheets if authenticated
       if (isAuthenticated && receiptToSync.imageUrl) {
         addSystemMessage('Synchronisiere mit Google Drive...')
-        const syncResult = await syncReceipt(receiptToSync, receiptToSync.imageUrl)
+        const { compressImage } = await import('@/lib/utils/compress-image')
+        const compressedImage = await compressImage(receiptToSync.imageUrl)
+        const syncResult = await syncReceipt(receiptToSync, compressedImage)
 
         if (syncResult.success) {
           // Persist sync metadata back to LocalStorage

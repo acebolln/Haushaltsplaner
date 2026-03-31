@@ -92,8 +92,10 @@ export function ReceiptManager() {
 
       let result
       if (imageData) {
-        // Full sync with image
-        result = await syncReceipt(receipt, imageData)
+        // Full sync with image (compress for Vercel body limit)
+        const { compressImage } = await import('@/lib/utils/compress-image')
+        const compressed = await compressImage(imageData)
+        result = await syncReceipt(receipt, compressed)
       } else {
         // Metadata-only sync (image lost)
         try {

@@ -24,6 +24,9 @@ import {
 } from "@/lib/google/sheets";
 import { checkRateLimit, getClientIdentifier } from "@/lib/security/rate-limiter";
 
+// Vercel serverless function timeout (default 10s, max 60s on Hobby)
+export const maxDuration = 60;
+
 // Session configuration (must match auth routes)
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,

@@ -71,6 +71,12 @@ export function useReceiptSync() {
           body: JSON.stringify({ receipt, imageBase64 }),
         })
 
+        // Handle non-JSON responses (e.g. Vercel 413 Payload Too Large)
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          throw new Error(`Server-Fehler (${response.status}): Bild möglicherweise zu groß für Upload`)
+        }
+
         const data: SyncResult = await response.json()
 
         if (!response.ok) {

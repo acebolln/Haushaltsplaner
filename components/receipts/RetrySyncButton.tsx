@@ -53,8 +53,10 @@ export function RetrySyncButton({ receipt, onSyncComplete, className = '' }: Ret
       let result
 
       if (imageData) {
-        // Full sync: image + Sheet row
-        result = await syncReceipt(receipt, imageData)
+        // Full sync: image + Sheet row (compress first for Vercel body limit)
+        const { compressImage } = await import('@/lib/utils/compress-image')
+        const compressed = await compressImage(imageData)
+        result = await syncReceipt(receipt, compressed)
       } else {
         // Metadata-only sync: no image available, just append to Sheet
         const response = await fetch('/api/receipts/sync', {
