@@ -151,6 +151,7 @@ export function mergeReceipts(
         lineItems: [],
         confidence: row.confidence,
         notes: row.notes,
+        driveFileId: row.driveLink ? `synced_${row.rowNumber}` : undefined,
         driveFileUrl: row.driveLink || undefined,
         sheetId: spreadsheetId,
         sheetRowNumber: row.rowNumber,
