@@ -1,5 +1,44 @@
 # Haushaltsplaner — Project Progress
 
+## 2026-04-02 — Pull-Sync Bugfixes, TDD Tests, Code Cleanup
+
+### Completed Tasks
+- **Bug #1 — ID Regeneration Fix**: Added `importReceipt()` to `lib/storage/receipts.ts` and `hooks/useReceiptManager.ts`. Preserves original IDs and sync metadata for pulled receipts. Deduplicates by `sheetRowNumber` (primary) and content fingerprint (fallback). `handlePull()` in `ReceiptManager.tsx` now uses `importReceipt` instead of `addReceipt`.
+- **Bug #2 — SyncStatusBadge Fix**: Changed condition from `driveFileId && syncedAt` to `(sheetRowNumber || driveFileId) && syncedAt`. Metadata-only synced receipts now correctly show as "Synchronisiert". Same fix applied to `isSynced()` in `useReceiptSync.ts`.
+- **Bug #3 — Content Dedup**: Added `deduplicateReceipts()` to `lib/storage/receipts.ts`. Removes duplicates by fingerprint (date+merchant+amount), preferring receipts with sync metadata.
+- **TDD Tests**: 12 new tests (8 in `lib/storage/__tests__/receipts.test.ts`, 4 in `components/receipts/__tests__/SyncStatusBadge.test.tsx`). All written RED-first, verified failing, then GREEN.
+- **Init Route Updated**: `/api/google/init` now creates 12-column sheet (was 9), matching current schema with Hochgeladen, Letzte Änderung, Änderungshistorie columns.
+- **"Lokal leeren" Fix**: Now also clears tombstones (`haushaltsplaner_deleted_receipts`) for clean fresh start.
+- **Legacy Docs Removed**: Cleaned up `docs/index.html`, `docs/DESIGN-SYSTEM.md`, `docs/chat-interface-design.md`, `docs/implementation-summary.md`, `docs/receipt-backend-implementation.md`, `docs/archive/` (old wireframes, brand files, sync guide).
+
+### Changed Files
+| File | Change |
+|------|--------|
+| `lib/storage/receipts.ts` | +`importReceipt()`, +`deduplicateReceipts()` |
+| `lib/storage/__tests__/receipts.test.ts` | **NEW** — 8 tests for saveReceipt, importReceipt, dedup |
+| `hooks/useReceiptManager.ts` | +`importReceipt` hook method, exports it |
+| `hooks/useReceiptSync.ts` | `isSynced()` checks `sheetRowNumber \|\| driveFileId` |
+| `components/receipts/ReceiptManager.tsx` | `handlePull` uses `importReceipt` instead of `addReceipt` |
+| `components/receipts/SyncStatusBadge.tsx` | Condition: `sheetRowNumber \|\| driveFileId` |
+| `components/receipts/__tests__/SyncStatusBadge.test.tsx` | **NEW** — 4 tests for badge states |
+| `app/api/google/init/route.ts` | 12-column headers, removed unused import |
+| `app/belege/page.tsx` | +tombstone clearing in "Lokal leeren" |
+
+### Current State
+- TypeScript: ✅ Clean (0 errors)
+- Tests: ✅ 29/29 passing
+- Build: ✅ Compiles (all 13 routes)
+- Vercel: ✅ Deployed
+- Pull-Sync Duplicate Bug: ✅ **FIXED**
+- SyncStatusBadge: ✅ **FIXED**
+
+### Next Steps
+1. **E2E Test**: Full manual test cycle — create receipt, verify sync, pull, edit, delete, re-pull
+2. **Clean up dev routes**: Consider removing `/api/google/cleanup` and `/api/google/init` after E2E test is complete
+3. **Feature ideas**: Receipt search, batch upload, yearly statistics
+
+---
+
 ## 2026-03-31 — Budget Sync, Receipt Sync Fixes, Duplicate Bug Discovery
 
 ### Completed Tasks

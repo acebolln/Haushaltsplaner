@@ -18,7 +18,6 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import type { GoogleSession } from "@/types/google";
 import { getYearFolderId } from "@/lib/google/drive";
-import { appendReceiptToSheet } from "@/lib/google/sheets";
 
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,
@@ -91,7 +90,7 @@ export async function POST() {
         fields: "id, parents",
       });
 
-      // Add headers
+      // Add headers (12 columns, matching sheets.ts schema)
       const headers = [
         "Datum",
         "Händler",
@@ -102,11 +101,14 @@ export async function POST() {
         "Konfidenz",
         "Beleg-Link",
         "Notizen",
+        "Hochgeladen",
+        "Letzte Änderung",
+        "Änderungshistorie",
       ];
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: "Belege!A1:I1",
+        range: "Belege!A1:L1",
         valueInputOption: "RAW",
         requestBody: { values: [headers] },
       });
@@ -151,6 +153,9 @@ export async function POST() {
               { index: 6, width: 100 },  // Konfidenz
               { index: 7, width: 250 },  // Beleg-Link
               { index: 8, width: 200 },  // Notizen
+              { index: 9, width: 130 },  // Hochgeladen
+              { index: 10, width: 130 }, // Letzte Änderung
+              { index: 11, width: 250 }, // Änderungshistorie
             ].map((col) => ({
               updateDimensionProperties: {
                 range: {
@@ -167,7 +172,7 @@ export async function POST() {
             {
               addBanding: {
                 bandedRange: {
-                  range: { sheetId: 0, startRowIndex: 0, startColumnIndex: 0, endColumnIndex: 9 },
+                  range: { sheetId: 0, startRowIndex: 0, startColumnIndex: 0, endColumnIndex: 12 },
                   rowProperties: {
                     headerColor: { red: 0.13, green: 0.13, blue: 0.13 },
                     firstBandColor: { red: 1, green: 1, blue: 1 },

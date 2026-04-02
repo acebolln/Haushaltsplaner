@@ -50,8 +50,9 @@ export default function BelegePage() {
   }
 
   const handleClearLocalStorage = async () => {
-    if (!confirm('Alle lokalen Belege und Chat-Nachrichten löschen?')) return
+    if (!confirm('Alle lokalen Belege, Tombstones und Chat-Nachrichten löschen?')) return
     localStorage.removeItem('haushaltsplaner_receipts')
+    localStorage.removeItem('haushaltsplaner_deleted_receipts')
     localStorage.removeItem('receipt-chat-messages')
     // Also clear receipt images from IndexedDB
     try {
@@ -61,7 +62,7 @@ export default function BelegePage() {
       // IndexedDB cleanup is best-effort
     }
     setChatKey((k) => k + 1)
-    setCleanupResult('LocalStorage und Bilder geleert')
+    setCleanupResult('LocalStorage, Tombstones und Bilder geleert')
   }
 
   return (
