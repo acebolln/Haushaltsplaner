@@ -21,36 +21,8 @@ export function useChatMessages() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Load messages from LocalStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as ChatMessage[]
-        // Convert timestamp strings back to Date objects
-        const messagesWithDates = parsed.map((msg) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        }))
-        setMessages(messagesWithDates)
-      }
-    } catch (error) {
-      console.error('Failed to load chat messages from storage:', error)
-    }
-  }, [])
-
-  // Save messages to LocalStorage whenever they change
-  useEffect(() => {
-    if (messages.length > 0) {
-      try {
-        // Keep only last MAX_STORED_MESSAGES
-        const toStore = messages.slice(-MAX_STORED_MESSAGES)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore))
-      } catch (error) {
-        console.error('Failed to save chat messages to storage:', error)
-      }
-    }
-  }, [messages])
+  // Fresh start each session — no localStorage restore
+  // Receipts are persisted in LocalStorage/Google Sheet separately
 
   // Auto-scroll to bottom when new message arrives
   useEffect(() => {
