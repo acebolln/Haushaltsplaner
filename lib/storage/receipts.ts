@@ -180,6 +180,90 @@ export function isTombstoned(date: string, merchantName: string, totalAmount: nu
 }
 
 /**
+ * Import a receipt from pull-sync, preserving its original ID and sync metadata.
+ * Unlike saveReceipt, this also deduplicates by sheetRowNumber.
+ */
+export function importReceipt(receipt: Receipt): void {
+  const receipts = loadReceipts()
+  const storageReceipt = stripImageForStorage(receipt)
+
+  // Match by sheetRowNumber first (primary dedup for pulled receipts)
+  if (receipt.sheetRowNumber) {
+    const rowIndex = receipts.findIndex((r) => r.sheetRowNumber === receipt.sheetRowNumber)
+    if (rowIndex >= 0) {
+      receipts[rowIndex] = { ...receipts[rowIndex], ...storageReceipt, id: receipts[rowIndex].id }
+      saveReceipts(receipts)
+      return
+    }
+  }
+
+  // Fallback: match by content fingerprint (date + merchant + amount)
+  const fpIndex = receipts.findIndex(
+    (r) =>
+      r.date === receipt.date &&
+      r.merchantName === receipt.merchantName &&
+      r.totalAmount === receipt.totalAmount
+  )
+  if (fpIndex >= 0) {
+    // Merge sync metadata into existing local receipt (keep local ID)
+    receipts[fpIndex] = {
+      ...receipts[fpIndex],
+      sheetRowNumber: receipt.sheetRowNumber,
+      sheetId: receipt.sheetId,
+      syncedAt: receipt.syncedAt,
+      driveFileId: receipt.driveFileId ?? receipts[fpIndex].driveFileId,
+      driveFileUrl: receipt.driveFileUrl ?? receipts[fpIndex].driveFileUrl,
+    }
+    saveReceipts(receipts)
+    return
+  }
+
+  // No match — save as new receipt with original ID preserved
+  receipts.push(storageReceipt)
+  saveReceipts(receipts)
+}
+
+/**
+ * Remove duplicate receipts from localStorage based on content fingerprint.
+ * Returns number of duplicates removed.
+ */
+export function deduplicateReceipts(): number {
+  const receipts = loadReceipts()
+  const seen = new Map<string, number>() // fingerprint → index of best receipt
+  const toRemove = new Set<number>()
+
+  for (let i = 0; i < receipts.length; i++) {
+    const r = receipts[i]
+    const fingerprint = `${r.date}|${r.merchantName}|${r.totalAmount}`
+    const existingIdx = seen.get(fingerprint)
+
+    if (existingIdx !== undefined) {
+      // Duplicate found — keep the one with sync metadata
+      const existing = receipts[existingIdx]
+      const existingHasSync = Boolean(existing.sheetRowNumber || existing.driveFileId)
+      const currentHasSync = Boolean(r.sheetRowNumber || r.driveFileId)
+
+      if (currentHasSync && !existingHasSync) {
+        // Current is better — remove existing, keep current
+        toRemove.add(existingIdx)
+        seen.set(fingerprint, i)
+      } else {
+        // Existing is better or equal — remove current
+        toRemove.add(i)
+      }
+    } else {
+      seen.set(fingerprint, i)
+    }
+  }
+
+  if (toRemove.size === 0) return 0
+
+  const deduped = receipts.filter((_, i) => !toRemove.has(i))
+  saveReceipts(deduped)
+  return toRemove.size
+}
+
+/**
  * Clears all receipts from localStorage
  */
 export function clearAllReceipts(): void {

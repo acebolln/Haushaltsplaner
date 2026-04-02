@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Receipt } from '@/types/receipt'
-import { loadReceipts, saveReceipt, deleteReceipt } from '@/lib/storage/receipts'
+import { loadReceipts, saveReceipt, deleteReceipt, importReceipt as importReceiptStorage } from '@/lib/storage/receipts'
 
 /**
  * Hook for managing receipts (CRUD operations)
@@ -70,6 +70,19 @@ export function useReceiptManager() {
     })
   }, [])
 
+  // Import a pulled receipt preserving its ID and sync metadata
+  const importReceipt = useCallback((receipt: Receipt) => {
+    try {
+      importReceiptStorage(receipt)
+      // Reload from storage to get the canonical state (deduped, merged)
+      const fresh = loadReceipts()
+      setReceipts(fresh)
+    } catch (error) {
+      console.error('Failed to import receipt:', error)
+      throw error
+    }
+  }, [])
+
   // Remove receipt
   const removeReceipt = useCallback((id: string) => {
     try {
@@ -85,6 +98,7 @@ export function useReceiptManager() {
     receipts,
     loading,
     addReceipt,
+    importReceipt,
     updateReceipt,
     removeReceipt,
   }

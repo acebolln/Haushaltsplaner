@@ -20,7 +20,7 @@ export function ReceiptManager() {
   const [detailOpen, setDetailOpen] = useState(false)
 
   // Hooks
-  const { receipts, loading, addReceipt, updateReceipt, removeReceipt } = useReceiptManager()
+  const { receipts, loading, addReceipt, importReceipt, updateReceipt, removeReceipt } = useReceiptManager()
   const {
     filteredReceipts,
     filters,
@@ -63,9 +63,9 @@ export function ReceiptManager() {
       for (const updated of result.updated) {
         updateReceipt(updated.id, updated)
       }
-      // Add new receipts from Sheet
+      // Import new receipts from Sheet (preserves IDs + deduplicates)
       for (const added of result.added) {
-        addReceipt(added)
+        importReceipt(added)
       }
     }
   }

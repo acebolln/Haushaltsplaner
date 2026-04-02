@@ -210,7 +210,7 @@ export function useReceiptSync() {
   )
 
   const isSynced = useCallback((receipt: Receipt) => {
-    return Boolean(receipt.driveFileId && receipt.syncedAt)
+    return Boolean((receipt.sheetRowNumber || receipt.driveFileId) && receipt.syncedAt)
   }, [])
 
   const needsSync = useCallback(

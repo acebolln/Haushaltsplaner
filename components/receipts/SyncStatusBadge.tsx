@@ -44,8 +44,8 @@ export function SyncStatusBadge({ receipt, isSyncing = false, className = '', si
     )
   }
 
-  // Synced state (has Drive metadata)
-  if (receipt.driveFileId && receipt.syncedAt) {
+  // Synced state (has Sheet row OR Drive file)
+  if ((receipt.sheetRowNumber || receipt.driveFileId) && receipt.syncedAt) {
     const syncDate = new Date(receipt.syncedAt)
     const formattedDate = format(syncDate, 'dd.MM.yyyy HH:mm', { locale: de })
 
