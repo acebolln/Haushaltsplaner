@@ -279,7 +279,7 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
   const hasMessages = messages.some((m) => m.role === 'user' || m.role === 'assistant')
 
   return (
-    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-slate-50`}>
+    <div className={`flex flex-col ${embedded ? 'flex-1 min-h-0' : 'h-[100dvh]'} bg-slate-50`}>
       {/* Chat Messages */}
       <div
         ref={chatContainerRef}

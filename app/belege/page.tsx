@@ -98,7 +98,7 @@ export default function BelegePage() {
   // --- Loading state ---
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-65px)] bg-slate-50">
+      <div className="flex flex-col items-center justify-center h-[calc(100dvh-65px)] bg-slate-50">
         <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
       </div>
     )
@@ -107,7 +107,7 @@ export default function BelegePage() {
   // --- Login Gate ---
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-65px)] bg-slate-50 px-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100dvh-65px)] bg-slate-50 px-4">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E6035F] to-[#FF4D8D] flex items-center justify-center mb-6 shadow-lg shadow-pink-200">
           <ImagePlus className="w-8 h-8 text-white" />
         </div>
@@ -133,7 +133,7 @@ export default function BelegePage() {
 
   // --- Authenticated App ---
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] bg-slate-50">
+    <div className="flex flex-col h-[calc(100dvh-65px)] bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -242,7 +242,7 @@ export default function BelegePage() {
 
       {/* Content */}
       {view === 'chat' ? (
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           <ChatInterface key={chatKey} embedded />
         </div>
       ) : (
