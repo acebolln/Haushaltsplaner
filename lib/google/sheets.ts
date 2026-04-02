@@ -255,6 +255,17 @@ async function getYearlySheet(
 }
 
 /**
+ * Format cents as German euro string with thousands separator
+ * e.g., 1800050 → "18.000,50"
+ */
+function formatEuroCents(cents: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+/**
  * Format line items as string
  *
  * @param receipt - Receipt data
@@ -267,7 +278,7 @@ function formatLineItems(receipt: Receipt): string {
 
   return receipt.lineItems
     .map((item) => {
-      const price = (item.totalPrice / 100).toFixed(2).replace(".", ",");
+      const price = formatEuroCents(item.totalPrice);
       return `${item.description} (${price}€)`;
     })
     .join(", ");
@@ -281,7 +292,7 @@ function formatLineItems(receipt: Receipt): string {
  * @returns Array of cell values matching the sheet columns
  */
 function formatReceiptRow(receipt: Receipt, driveLink: string): string[] {
-  const amount = (receipt.totalAmount / 100).toFixed(2).replace(".", ",");
+  const amount = formatEuroCents(receipt.totalAmount);
   const category = CATEGORY_LABELS[receipt.category] || receipt.category;
   const paymentMethod = PAYMENT_METHOD_LABELS[receipt.paymentMethod] || receipt.paymentMethod;
   const lineItems = formatLineItems(receipt);
@@ -499,7 +510,7 @@ export async function updateReceiptRow(
   const oldPayment = (existingCells[4] as string) || "";
   const oldNotes = (existingCells[8] as string) || "";
 
-  const newAmount = (receipt.totalAmount / 100).toFixed(2).replace(".", ",");
+  const newAmount = formatEuroCents(receipt.totalAmount);
   const newCategory = CATEGORY_LABELS[receipt.category] || receipt.category;
   const newPayment = PAYMENT_METHOD_LABELS[receipt.paymentMethod] || receipt.paymentMethod;
 

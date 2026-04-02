@@ -48,3 +48,33 @@ describe('parseGermanAmount', () => {
     expect(parseGermanAmount('-45,67')).toBe(-4567)
   })
 })
+
+// Mirror of formatEuroCents from sheets.ts
+function formatEuroCents(cents: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100)
+}
+
+describe('formatEuroCents', () => {
+  it('formats simple amount: 4567 → "45,67"', () => {
+    expect(formatEuroCents(4567)).toBe('45,67')
+  })
+
+  it('formats with thousands separator: 1800050 → "18.000,50"', () => {
+    expect(formatEuroCents(1800050)).toBe('18.000,50')
+  })
+
+  it('formats zero: 0 → "0,00"', () => {
+    expect(formatEuroCents(0)).toBe('0,00')
+  })
+})
+
+describe('format → parse roundtrip', () => {
+  it.each([4567, 1800050, 123456789, 50000, 0, 99])('roundtrips %i cents', (cents) => {
+    const formatted = formatEuroCents(cents)
+    const parsed = parseGermanAmount(formatted)
+    expect(parsed).toBe(cents)
+  })
+})
