@@ -58,7 +58,12 @@ export function useChatMessages() {
   }, [messages])
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Delay to ensure DOM has rendered new content before scrolling
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 50)
+    })
   }
 
   // Add a new message

@@ -216,7 +216,7 @@ export function ReceiptChatCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-md p-6 space-y-4 max-w-2xl">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-md p-4 sm:p-6 space-y-4 max-w-full sm:max-w-2xl overflow-hidden">
       {/* Confidence Indicator */}
       <div className="flex justify-end">
         <ConfidenceIndicator />
@@ -337,7 +337,7 @@ export function ReceiptChatCard({
 
       {/* Actions */}
       {editable && (onConfirm || onReject) && (
-        <div className="flex gap-3 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-slate-200">
           {onConfirm && (
             <Button
               onClick={() => { setSaving(true); onConfirm() }}

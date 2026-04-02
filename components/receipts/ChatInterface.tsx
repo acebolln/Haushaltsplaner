@@ -313,7 +313,7 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
                   <ChatMessage message={message} />
 
                   {receiptContent && receiptContent.type === 'receipt' && (
-                    <div className="pl-11 py-2">
+                    <div className="pl-0 sm:pl-11 py-2">
                       <ReceiptChatCard
                         receipt={receiptContent.receipt}
                         editable={receiptContent.editable}
@@ -342,7 +342,7 @@ export function ChatInterface({ embedded = false }: ChatInterfaceProps) {
             onFileUpload={handleFileUpload}
             disabled={loading}
             placeholder={
-              loading ? 'Analysiere Beleg...' : 'Nachricht eingeben oder Beleg hochladen...'
+              loading ? 'Analysiere...' : 'Nachricht oder Beleg...'
             }
           />
         </div>

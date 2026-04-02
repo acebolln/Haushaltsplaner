@@ -14,8 +14,8 @@ export function Navigation() {
 
   return (
     <nav className="border-b bg-background">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center gap-4 sm:gap-8">
           <Link href="/" className="text-xl font-bold">
             Haushaltsplaner
           </Link>

@@ -70,36 +70,38 @@ export default function BelegePage() {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center shrink-0">
               {/* View Toggle */}
               <div className="flex bg-slate-100 rounded-lg p-0.5">
                 <button
                   onClick={() => setView('chat')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     view === 'chat'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   <MessageSquarePlus className="h-4 w-4" />
-                  Neuer Beleg
+                  <span className="hidden sm:inline">Neuer Beleg</span>
+                  <span className="sm:hidden">Neu</span>
                 </button>
                 <button
                   onClick={() => setView('list')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     view === 'list'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   <List className="h-4 w-4" />
-                  Übersicht
+                  <span className="hidden sm:inline">Übersicht</span>
+                  <span className="sm:hidden">Liste</span>
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
               {view === 'chat' && (
                 <Button
                   variant="ghost"
@@ -107,8 +109,8 @@ export default function BelegePage() {
                   onClick={handleClearChat}
                   className="text-slate-500 hover:text-red-600"
                 >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  Chat leeren
+                  <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Chat leeren</span>
                 </Button>
               )}
               {view === 'list' && (
@@ -118,9 +120,10 @@ export default function BelegePage() {
                     size="sm"
                     onClick={handleClearLocalStorage}
                     className="text-slate-500 hover:text-orange-600"
+                    title="Lokal leeren"
                   >
-                    <Trash2 className="h-4 w-4 mr-1.5" />
-                    Lokal leeren
+                    <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Lokal leeren</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -128,9 +131,10 @@ export default function BelegePage() {
                     onClick={handleInitDrive}
                     disabled={cleaning}
                     className="text-slate-500 hover:text-emerald-600"
+                    title="Drive-Struktur erstellen"
                   >
-                    <FolderPlus className="h-4 w-4 mr-1.5" />
-                    {cleaning ? 'Erstelle...' : 'Drive-Struktur'}
+                    <FolderPlus className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">{cleaning ? 'Erstelle...' : 'Drive-Struktur'}</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -138,9 +142,10 @@ export default function BelegePage() {
                     onClick={handleCleanupDrive}
                     disabled={cleaning}
                     className="text-slate-500 hover:text-red-600"
+                    title="Drive leeren"
                   >
-                    <AlertTriangle className="h-4 w-4 mr-1.5" />
-                    {cleaning ? 'Räume auf...' : 'Drive leeren'}
+                    <AlertTriangle className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">{cleaning ? 'Räume auf...' : 'Drive leeren'}</span>
                   </Button>
                 </>
               )}
@@ -152,7 +157,9 @@ export default function BelegePage() {
 
       {/* Content */}
       {view === 'chat' ? (
-        <ChatInterface key={chatKey} embedded />
+        <div className="flex-1 min-h-0">
+          <ChatInterface key={chatKey} embedded />
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
