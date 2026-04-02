@@ -311,10 +311,13 @@ function formatReceiptRow(receipt: Receipt, driveLink: string): string[] {
  * @returns Amount in cents (e.g., 4567)
  */
 function parseGermanAmount(amountStr: string): number {
-  // Remove any currency symbols and whitespace
+  // Remove currency symbols, whitespace, and thousands separators (dots)
+  // German format: 18.000,50 → 18000.50
   const cleaned = amountStr.replace(/[€\s]/g, "").trim();
-  // Replace comma with dot for parsing
-  const parsed = parseFloat(cleaned.replace(",", "."));
+  // Remove dots (thousands separators), then replace comma (decimal) with dot
+  const normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  const parsed = parseFloat(normalized);
+  if (isNaN(parsed)) return 0;
   return Math.round(parsed * 100);
 }
 
