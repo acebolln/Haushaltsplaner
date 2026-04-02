@@ -205,7 +205,7 @@ export function ReceiptChatCard({
             size="icon-sm"
             variant="ghost"
             onClick={() => startEdit(field, receipt[field])}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
             aria-label={`${label} bearbeiten`}
           >
             <Edit2 className="w-4 h-4" />
@@ -283,7 +283,7 @@ export function ReceiptChatCard({
                   size="icon-sm"
                   variant="ghost"
                   onClick={() => startEdit('category', receipt.category)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
@@ -325,7 +325,7 @@ export function ReceiptChatCard({
                   size="icon-sm"
                   variant="ghost"
                   onClick={() => startEdit('paymentMethod', receipt.paymentMethod)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
