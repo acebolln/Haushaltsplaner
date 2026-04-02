@@ -148,6 +148,9 @@ async function createYearlySheet(
   });
 
   const spreadsheetId = createResponse.data.spreadsheetId!;
+  // Get the actual sheetId from the create response (not always 0)
+  const actualSheetId =
+    createResponse.data.sheets?.[0]?.properties?.sheetId ?? 0;
 
   // Move to year folder
   await drive.files.update({
@@ -189,7 +192,7 @@ async function createYearlySheet(
         {
           repeatCell: {
             range: {
-              sheetId: 0,
+              sheetId: actualSheetId,
               startRowIndex: 0,
               endRowIndex: 1,
             },
@@ -211,7 +214,7 @@ async function createYearlySheet(
         {
           updateSheetProperties: {
             properties: {
-              sheetId: 0,
+              sheetId: actualSheetId,
               gridProperties: {
                 frozenRowCount: 1,
               },
